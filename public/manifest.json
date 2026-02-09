@@ -1,0 +1,21 @@
+{
+  "name": "AedesGuard AI",
+  "short_name": "AedesGuard",
+  "description": "A specialized entomological surveillance system for Dengue prevention.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#E2F9FA",
+  "theme_color": "#42CBCF",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

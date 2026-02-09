@@ -1,3 +1,34 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "breeding-site-1-before",
+      "description": "Stagnant water in a discarded tire, a common mosquito breeding site.",
+      "imageUrl": "https://images.unsplash.com/photo-1616662178763-a4be56015729?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx0aXJlJTIwd2F0ZXJ8ZW58MHx8fHwxNzcwNjM5MTU5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "tire water"
+    },
+    {
+      "id": "breeding-site-1-after",
+      "description": "The same tire, now dry and overturned, no longer a breeding site.",
+      "imageUrl": "https://images.unsplash.com/photo-1765774237712-640cdf2e4fff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx0aXJlJTIwZHJ5fGVufDB8fHx8MTc3MDYzOTE1OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "tire dry"
+    },
+    {
+      "id": "breeding-site-2-before",
+      "description": "A flower pot tray filled with stagnant water.",
+      "imageUrl": "https://images.unsplash.com/photo-1509423350716-97f9360b4e09?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxmbG93ZXIlMjBwb3R8ZW58MHx8fHwxNzcwNjM5MTU5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "flower pot"
+    },
+    {
+      "id": "breeding-site-2-after",
+      "description": "A clean and dry flower pot tray.",
+      "imageUrl": "https://images.unsplash.com/photo-1534211220810-1c6f9c76e44f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxkcnklMjBwb3R8ZW58MHx8fHwxNzcwNjM5MTU5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dry pot"
+    },
+    {
+      "id": "user-avatar-1",
+      "description": "User avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NzA1ODUyMzF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    }
+  ]
 }
