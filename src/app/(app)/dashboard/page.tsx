@@ -1,12 +1,25 @@
 import { getReports } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, ShieldAlert, Target } from 'lucide-react';
-import { MapView } from '@/components/map-view';
-import { MapPlaceholder } from '@/components/map-placeholder';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const MapView = dynamic(() => import('@/components/map-view').then(mod => mod.MapView), { 
+  ssr: false,
+  loading: () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Live Heatmap</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-[400px] w-full" />
+      </CardContent>
+    </Card>
+  )
+});
 
 export default async function DashboardPage() {
   const reports = await getReports();
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const totalReports = reports.length;
   const neutralizedCount = reports.filter((r) => r.isNeutralized).length;
@@ -47,7 +60,7 @@ export default async function DashboardPage() {
         </Card>
       </div>
       <div>
-        {apiKey ? <MapView reports={reports} /> : <MapPlaceholder />}
+        <MapView reports={reports} />
       </div>
     </div>
   );

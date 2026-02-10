@@ -8,10 +8,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Lightbulb, Loader2, MapPin, ShieldAlert, Upload } from 'lucide-react';
-import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
+import { Lightbulb, Loader2, ShieldAlert, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const ReportLocationMap = dynamic(() => import('@/components/report-location-map').then(mod => mod.ReportLocationMap), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[300px] w-full rounded-lg" />
+});
 
 const initialState = {};
 
@@ -40,14 +46,6 @@ export default function ReportPage() {
       reader.readAsDataURL(file);
     }
   };
-
-  const handleMapClick = (e: google.maps.MapMouseEvent) => {
-    if (e.detail.latLng) {
-      setLocation({ lat: e.detail.latLng.lat, lng: e.detail.latLng.lng });
-    }
-  };
-
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -105,25 +103,9 @@ export default function ReportPage() {
             <CardDescription>Click on the map to pinpoint the location of the breeding site.</CardDescription>
           </CardHeader>
           <CardContent>
-            {apiKey ? (
-              <div className="h-[300px] w-full rounded-lg overflow-hidden">
-                <APIProvider apiKey={apiKey}>
-                  <Map
-                    defaultCenter={{ lat: 7.8731, lng: 80.7718 }}
-                    defaultZoom={8}
-                    gestureHandling={'greedy'}
-                    onClick={handleMapClick}
-                    mapId="report-map"
-                  >
-                    <AdvancedMarker position={location} />
-                  </Map>
-                </APIProvider>
-              </div>
-            ) : (
-                <div className="flex h-[300px] items-center justify-center rounded-lg border-2 border-dashed bg-muted/50 text-center">
-                    <p className="text-sm text-muted-foreground">Map is unavailable. Please set API Key.</p>
-                </div>
-            )}
+            <div className="h-[300px] w-full rounded-lg overflow-hidden">
+                <ReportLocationMap location={location} setLocation={setLocation} />
+            </div>
             <input type="hidden" name="lat" value={location.lat} />
             <input type="hidden" name="lng" value={location.lng} />
           </CardContent>
