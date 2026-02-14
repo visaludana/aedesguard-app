@@ -1,5 +1,5 @@
 import { getReports } from '@/lib/data';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Droplets, ShieldAlert, Target, Thermometer, Umbrella } from 'lucide-react';
 import { getWeatherData, type WeatherData } from '@/lib/weather';
 import { predictWeatherRisk, type PredictWeatherRiskOutput } from '@/ai/flows/predict-weather-risk';
