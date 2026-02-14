@@ -2,26 +2,24 @@
 
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useEffect } from 'react';
+import { Icon } from 'leaflet';
 
 type ReportLocationMapProps = {
     location: { lat: number; lng: number; };
     setLocation: (location: { lat: number; lng: number; }) => void;
 }
 
+const defaultIcon = new Icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+
 export function ReportLocationMap({ location, setLocation }: ReportLocationMapProps) {
-  
-  useEffect(() => {
-    import('leaflet').then(L => {
-        // @ts-ignore
-        delete L.Icon.Default.prototype._getIconUrl;
-        L.Icon.Default.mergeOptions({
-            iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
-        });
-    });
-  }, []);
 
   function MapClickHandler() {
     useMapEvents({
@@ -44,7 +42,7 @@ export function ReportLocationMap({ location, setLocation }: ReportLocationMapPr
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       />
-      <Marker position={location} />
+      <Marker position={location} icon={defaultIcon} />
       <MapClickHandler />
     </MapContainer>
   );

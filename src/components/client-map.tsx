@@ -21,6 +21,5 @@ const MapView = dynamic(() => import('@/components/map-view').then(mod => mod.Ma
 });
 
 export default function ClientMap({ reports }: { reports: SurveillanceReport[] }) {
-  const MemoizedMapView = React.useMemo(() => MapView, []);
-  return <MemoizedMapView reports={reports} />;
+  return <MapView reports={reports} />;
 }

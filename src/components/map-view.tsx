@@ -4,8 +4,9 @@ import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import type { SurveillanceReport } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useState } from 'react';
+import { divIcon } from 'leaflet';
 import { Skeleton } from './ui/skeleton';
+
 
 type MapViewProps = {
   reports: SurveillanceReport[];
@@ -14,22 +15,8 @@ type MapViewProps = {
 };
 
 export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom = 8 }: MapViewProps) {
-  const [leaflet, setLeaflet] = useState<typeof import('leaflet') | null>(null);
 
-  useEffect(() => {
-    import('leaflet').then(L => {
-      // @ts-ignore
-      delete L.Icon.Default.prototype._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
-      });
-      setLeaflet(L);
-    });
-  }, []);
-
-  if (!leaflet) {
+  if (typeof window === 'undefined') {
     return (
         <Card>
             <CardHeader>
@@ -48,7 +35,7 @@ export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom 
                   riskLevel > 5 ? '#F59E0B' : // Amber
                   '#60A5FA'; // Blue
 
-    return leaflet.divIcon({
+    return divIcon({
       html: `<span style="background-color: ${color}; width: 1rem; height: 1rem; display: block; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px ${color};"></span>`,
       className: 'bg-transparent border-0',
       iconSize: [16, 16],
