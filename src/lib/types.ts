@@ -11,4 +11,7 @@ export type SurveillanceReport = {
   imageHint: string;
   neutralizedImageUrl?: string;
   neutralizedImageHint?: string;
+  reportedBy: string;
+  userAvatarUrl?: string;
+  userAvatarHint?: string;
 };

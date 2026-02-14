@@ -1,12 +1,15 @@
 'use client';
 
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, Popup } from 'react-leaflet';
 import type { SurveillanceReport } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import 'leaflet/dist/leaflet.css';
-import { divIcon } from 'leaflet';
+import { divIcon, type LatLng } from 'leaflet';
 import { Skeleton } from './ui/skeleton';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { formatDistanceToNow } from 'date-fns';
 
 type MapViewProps = {
   reports: SurveillanceReport[];
@@ -23,6 +26,37 @@ function ChangeView({ center, zoom }: { center: { lat: number, lng: number }, zo
   return null;
 }
 
+// New component for user location
+function UserLocationMarker() {
+    const [position, setPosition] = useState<LatLng | null>(null);
+    const map = useMap();
+
+    useEffect(() => {
+        map.locate({ setView: true, maxZoom: 13, watch: true });
+        map.on("locationfound", function (e) {
+            setPosition(e.latlng);
+        });
+    }, [map]);
+
+    const userIcon = divIcon({
+        html: `
+            <div class="relative flex h-5 w-5">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-5 w-5 bg-sky-500 border-2 border-white"></span>
+            </div>
+        `,
+        className: 'bg-transparent border-0',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+    });
+
+    return position === null ? null : (
+        <Marker position={position} icon={userIcon}>
+            <Popup>Your Location</Popup>
+        </Marker>
+    );
+}
+
 export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom = 8 }: MapViewProps) {
   const apiKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
   const mapTilerUrl = `https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=${apiKey}`;
@@ -32,7 +66,7 @@ export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom 
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Live Heatmap</CardTitle>
+                <CardTitle>Live Surveillance Map</CardTitle>
             </CardHeader>
             <CardContent>
                 <Skeleton className="h-[400px] w-full" />
@@ -45,7 +79,7 @@ export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom 
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Live Heatmap</CardTitle>
+                <CardTitle>Live Surveillance Map</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="h-[400px] w-full flex items-center justify-center bg-muted rounded-lg">
@@ -91,7 +125,7 @@ export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom 
   return (
     <Card>
         <CardHeader>
-            <CardTitle>Live Heatmap</CardTitle>
+            <CardTitle>Live Surveillance Map</CardTitle>
         </CardHeader>
         <CardContent>
             <div className="h-[400px] w-full overflow-hidden rounded-lg">
@@ -106,8 +140,37 @@ export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom 
                         url={mapTilerUrl}
                         attribution={maptilerAttribution}
                     />
+                    <UserLocationMarker />
                     {reports.map((report) => (
                     <Marker key={report.id} position={report.location} icon={getMarkerIcon(report.riskLevel, report.isNeutralized)}>
+                        <Popup minWidth={250}>
+                            <div className="space-y-3">
+                                <Image
+                                    src={report.imageUrl}
+                                    alt={report.habitatDescription}
+                                    data-ai-hint={report.imageHint}
+                                    width={400}
+                                    height={300}
+                                    className="rounded-md object-cover w-full h-auto"
+                                />
+                                <div>
+                                    <p className="text-sm font-medium">{report.locationName}</p>
+                                    <p className="text-xs text-muted-foreground">{report.habitatDescription}</p>
+                                </div>
+                                <div className="flex items-center gap-2 pt-2 border-t">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={report.userAvatarUrl} alt={report.reportedBy} data-ai-hint={report.userAvatarHint} />
+                                        <AvatarFallback>{report.reportedBy.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <p className="text-xs font-semibold">{report.reportedBy}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Reported {formatDistanceToNow(new Date(report.reportedAt), { addSuffix: true })}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </Popup>
                     </Marker>
                     ))}
                     <ChangeView center={mapCenter} zoom={mapZoom} />
