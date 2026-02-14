@@ -7,7 +7,6 @@ const breedingSite2Before = PlaceHolderImages.find(img => img.id === 'breeding-s
 export const mockSurveillanceReports: SurveillanceReport[] = [
   {
     id: 'report-001',
-    location: { lat: 6.9271, lng: 79.8612 },
     locationName: "Colombo",
     larvaeGenus: 'Aedes aegypti',
     riskLevel: 9,
@@ -19,7 +18,6 @@ export const mockSurveillanceReports: SurveillanceReport[] = [
   },
   {
     id: 'report-002',
-    location: { lat: 7.2906, lng: 80.6337 },
     locationName: "Kandy",
     larvaeGenus: 'Culex',
     riskLevel: 5,
@@ -32,7 +30,6 @@ export const mockSurveillanceReports: SurveillanceReport[] = [
   },
   {
     id: 'report-003',
-    location: { lat: 6.0535, lng: 80.2210 },
     locationName: "Galle",
     larvaeGenus: 'Aedes aegypti',
     riskLevel: 7,
@@ -44,7 +41,6 @@ export const mockSurveillanceReports: SurveillanceReport[] = [
   },
     {
     id: 'report-004',
-    location: { lat: 9.6615, lng: 80.0255 },
     locationName: "Jaffna",
     larvaeGenus: 'Unknown',
     riskLevel: 3,

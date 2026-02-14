@@ -11,8 +11,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Lightbulb, Loader2, ShieldAlert, Upload } from 'lucide-react';
 import React, { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import dynamic from 'next/dynamic';
-import { Skeleton } from '@/components/ui/skeleton';
 
 const initialState = {};
 
@@ -27,14 +25,8 @@ function SubmitButton() {
 }
 
 export default function ReportPage() {
-  const ReportLocationMap = React.useMemo(() => dynamic(() => import('@/components/report-location-map').then(mod => mod.ReportLocationMap), {
-    ssr: false,
-    loading: () => <Skeleton className="h-[300px] w-full rounded-lg" />
-  }), []);
-
   const [state, formAction] = useFormState(reportBreedingSite, initialState);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [location, setLocation] = useState({ lat: 7.8731, lng: 80.7718 });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -81,6 +73,15 @@ export default function ReportPage() {
                 rows={4}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="locationName">Location Name</Label>
+              <Input
+                id="locationName"
+                name="locationName"
+                placeholder="e.g., Colombo, Kandy"
+                required
+              />
+            </div>
              <div className="space-y-2">
               <Label>Preferred Language for Advice</Label>
                <Select name="language" defaultValue='English'>
@@ -94,20 +95,6 @@ export default function ReportPage() {
                 </SelectContent>
               </Select>
             </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Mark Location</CardTitle>
-            <CardDescription>Click on the map to pinpoint the location of the breeding site.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full rounded-lg overflow-hidden">
-                <ReportLocationMap location={location} setLocation={setLocation} />
-            </div>
-            <input type="hidden" name="lat" value={location.lat} />
-            <input type="hidden" name="lng" value={location.lng} />
           </CardContent>
           <CardFooter>
             <SubmitButton />

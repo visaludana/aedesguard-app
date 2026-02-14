@@ -7,8 +7,7 @@ import { generateLocalizedSafetyAdvice } from '@/ai/flows/generate-localized-saf
 const reportSchema = z.object({
   habitatDescription: z.string().min(10, 'Please provide a more detailed description.'),
   image: z.instanceof(File),
-  lat: z.coerce.number(),
-  lng: z.coerce.number(),
+  locationName: z.string().min(1, 'Location name is required.'),
   language: z.enum(['Sinhala', 'Tamil', 'English']),
 });
 
@@ -30,14 +29,13 @@ export async function reportBreedingSite(
   const validatedFields = reportSchema.safeParse({
     habitatDescription: formData.get('habitatDescription'),
     image: formData.get('image'),
-    lat: formData.get('lat'),
-    lng: formData.get('lng'),
+    locationName: formData.get('locationName'),
     language: formData.get('language'),
   });
 
   if (!validatedFields.success) {
     return {
-      error: validatedFields.error.flatten().fieldErrors.habitatDescription?.[0] || 'Invalid input.',
+      error: validatedFields.error.flatten().fieldErrors.habitatDescription?.[0] || validatedFields.error.flatten().fieldErrors.locationName?.[0] || 'Invalid input.',
     };
   }
 
