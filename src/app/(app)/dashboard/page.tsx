@@ -6,8 +6,11 @@ import { predictWeatherRisk, type PredictWeatherRiskOutput } from '@/ai/flows/pr
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import ClientMap from '@/components/client-map';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { districts } from '@/lib/sri-lanka-districts';
+import DistrictRiskMap from '@/components/district-risk-map';
 
-function getRiskBadgeVariant(riskLevel: number): 'destructive' | 'secondary' | 'default' {
+export function getRiskBadgeVariant(riskLevel: number): 'destructive' | 'secondary' | 'default' {
   if (riskLevel > 8) return 'destructive';
   if (riskLevel > 5) return 'secondary';
   return 'default';
@@ -75,27 +78,101 @@ function WeatherRiskCard({ weatherData, riskPrediction }: { weatherData: Weather
   );
 }
 
+export type DistrictRisk = {
+  name: string;
+  weather: WeatherData | null;
+  risk: PredictWeatherRiskOutput | null;
+};
+
+async function RiskMapView({ districtsWithRisk }: { districtsWithRisk: DistrictRisk[] }) {
+  const highestRiskDistrict = [...districtsWithRisk]
+    .filter(d => d.risk)
+    .sort((a, b) => b.risk!.riskLevel - a.risk!.riskLevel)[0];
+
+  const topFiveRisks = [...districtsWithRisk]
+    .filter(d => d.risk)
+    .sort((a, b) => b.risk!.riskLevel - a.risk!.riskLevel)
+    .slice(0, 5);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <DistrictRiskMap districtsWithRisk={districtsWithRisk} />
+      <Card>
+        <CardHeader>
+          <CardTitle>District Risk Overview</CardTitle>
+          <CardDescription>AI-powered risk assessment based on live weather data.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {highestRiskDistrict && highestRiskDistrict.risk ? (
+            <div>
+              <p className="text-sm">
+                Highest risk district: <strong>{highestRiskDistrict.name}</strong>
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {highestRiskDistrict.risk.assessment}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Risk data is being calculated for all districts...</p>
+          )}
+          <div className="space-y-3 pt-4 border-t">
+            <h4 className="font-medium">Top 5 High-Risk Districts</h4>
+            <ul className="space-y-2">
+              {topFiveRisks.map(d => (
+                <li key={d.name} className="flex justify-between items-center text-sm">
+                  <span>{d.name}</span>
+                  <Badge variant={getRiskBadgeVariant(d.risk!.riskLevel)}>{d.risk!.riskLevel}/10 Risk</Badge>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 
 export default async function DashboardPage() {
-  // Fetch reports and weather data in parallel
-  const [reports, weatherData] = await Promise.all([
+  // Fetch data for surveillance view
+  const [reports, colomboWeather] = await Promise.all([
     getReports(),
-    // Using Colombo's coordinates as a default
     getWeatherData(6.9271, 79.8612) 
   ]);
 
-  let riskPrediction: PredictWeatherRiskOutput | null = null;
-  if (weatherData) {
+  let colomboRisk: PredictWeatherRiskOutput | null = null;
+  if (colomboWeather) {
     try {
-      riskPrediction = await predictWeatherRisk({
-        temperature: weatherData.temperature,
-        humidity: weatherData.humidity,
-        rainfall: weatherData.rainfall,
+      colomboRisk = await predictWeatherRisk({
+        temperature: colomboWeather.temperature,
+        humidity: colomboWeather.humidity,
+        rainfall: colomboWeather.rainfall,
       });
     } catch (e) {
-      console.error("AI risk prediction failed:", e);
+      console.error("AI risk prediction failed for Colombo:", e);
     }
   }
+
+  // Fetch data for district risk map view
+  const districtRiskPromises = districts.map(async (district): Promise<DistrictRisk> => {
+    const weather = await getWeatherData(district.lat, district.lng);
+    if (!weather) {
+      return { name: district.name, weather: null, risk: null };
+    }
+    try {
+      const risk = await predictWeatherRisk({
+        temperature: weather.temperature,
+        humidity: weather.humidity,
+        rainfall: weather.rainfall,
+      });
+      return { name: district.name, weather, risk };
+    } catch (e) {
+      console.error(`AI risk prediction failed for ${district.name}:`, e);
+      return { name: district.name, weather, risk: null };
+    }
+  });
+
+  const districtsWithRisk = await Promise.all(districtRiskPromises);
 
   const totalReports = reports.length;
   const neutralizedCount = reports.filter((r) => r.isNeutralized).length;
@@ -104,7 +181,7 @@ export default async function DashboardPage() {
   return (
     <div className="grid gap-6">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="lg:col-span-2">
+        <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Reports</CardTitle>
                 <Target className="h-4 w-4 text-muted-foreground" />
@@ -134,12 +211,35 @@ export default async function DashboardPage() {
                 <p className="text-xs text-muted-foreground">active high-risk areas</p>
             </CardContent>
         </Card>
+         <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Highest District Risk</CardTitle>
+                <ShieldAlert className="h-4 w-4 text-red-500" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">
+                    {districtsWithRisk.filter(d => d.risk).sort((a,b) => b.risk!.riskLevel - a.risk!.riskLevel)[0]?.name ?? '...'}
+                </div>
+                <p className="text-xs text-muted-foreground">based on live weather data</p>
+            </CardContent>
+        </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ClientMap reports={reports} />
-        <WeatherRiskCard weatherData={weatherData} riskPrediction={riskPrediction} />
-      </div>
+      <Tabs defaultValue="surveillance">
+        <TabsList className="grid w-full max-w-sm grid-cols-2">
+            <TabsTrigger value="surveillance">Surveillance Map</TabsTrigger>
+            <TabsTrigger value="risk">District Risk Map</TabsTrigger>
+        </TabsList>
+        <TabsContent value="surveillance" className="mt-4">
+            <div className="grid gap-6 lg:grid-cols-2">
+                <ClientMap reports={reports} />
+                <WeatherRiskCard weatherData={colomboWeather} riskPrediction={colomboRisk} />
+            </div>
+        </TabsContent>
+        <TabsContent value="risk" className="mt-4">
+            <RiskMapView districtsWithRisk={districtsWithRisk} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
