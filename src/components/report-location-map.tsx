@@ -2,16 +2,7 @@
 
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-
-// This is to fix the default icon issue with webpack
-// @ts-ignore
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
-});
+import { useEffect } from 'react';
 
 type ReportLocationMapProps = {
     location: { lat: number; lng: number; };
@@ -19,6 +10,18 @@ type ReportLocationMapProps = {
 }
 
 export function ReportLocationMap({ location, setLocation }: ReportLocationMapProps) {
+  
+  useEffect(() => {
+    import('leaflet').then(L => {
+        // @ts-ignore
+        delete L.Icon.Default.prototype._getIconUrl;
+        L.Icon.Default.mergeOptions({
+            iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+        });
+    });
+  }, []);
 
   function MapClickHandler() {
     useMapEvents({

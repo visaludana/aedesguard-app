@@ -4,16 +4,8 @@ import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import type { SurveillanceReport } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-
-// This is to fix the default icon issue with webpack
-// @ts-ignore
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
-});
+import { useEffect, useState } from 'react';
+import { Skeleton } from './ui/skeleton';
 
 type MapViewProps = {
   reports: SurveillanceReport[];
@@ -22,13 +14,41 @@ type MapViewProps = {
 };
 
 export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom = 8 }: MapViewProps) {
+  const [leaflet, setLeaflet] = useState<typeof import('leaflet') | null>(null);
+
+  useEffect(() => {
+    import('leaflet').then(L => {
+      // @ts-ignore
+      delete L.Icon.Default.prototype._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+      });
+      setLeaflet(L);
+    });
+  }, []);
+
+  if (!leaflet) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Live Heatmap</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Skeleton className="h-[400px] w-full" />
+            </CardContent>
+        </Card>
+    );
+  }
+  
   const getMarkerIcon = (riskLevel: number, isNeutralized: boolean) => {
     const color = isNeutralized ? '#34D399' : // Green
                   riskLevel > 8 ? '#EF4444' : // Red
                   riskLevel > 5 ? '#F59E0B' : // Amber
                   '#60A5FA'; // Blue
 
-    return L.divIcon({
+    return leaflet.divIcon({
       html: `<span style="background-color: ${color}; width: 1rem; height: 1rem; display: block; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px ${color};"></span>`,
       className: 'bg-transparent border-0',
       iconSize: [16, 16],
