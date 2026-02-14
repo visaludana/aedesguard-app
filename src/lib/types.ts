@@ -1,5 +1,6 @@
 export type SurveillanceReport = {
   id: string;
+  location: { lat: number; lng: number; };
   locationName: string;
   larvaeGenus: 'Aedes aegypti' | 'Culex' | 'Unknown';
   riskLevel: number; // 1-10

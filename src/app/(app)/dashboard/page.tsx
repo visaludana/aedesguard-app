@@ -5,6 +5,7 @@ import { getWeatherData, type WeatherData } from '@/lib/weather';
 import { predictWeatherRisk, type PredictWeatherRiskOutput } from '@/ai/flows/predict-weather-risk';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import ClientMap from '@/components/client-map';
 
 function getRiskBadgeVariant(riskLevel: number): 'destructive' | 'secondary' | 'default' {
   if (riskLevel > 8) return 'destructive';
@@ -102,40 +103,43 @@ export default async function DashboardPage() {
 
   return (
     <div className="grid gap-6">
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Reports</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalReports}</div>
-            <p className="text-xs text-muted-foreground">surveillance reports filed</p>
-          </CardContent>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="lg:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Reports</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{totalReports}</div>
+                <p className="text-xs text-muted-foreground">surveillance reports filed</p>
+            </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Sites Neutralized</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{neutralizedCount}</div>
-            <p className="text-xs text-muted-foreground">breeding grounds destroyed</p>
-          </CardContent>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Sites Neutralized</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{neutralizedCount}</div>
+                <p className="text-xs text-muted-foreground">breeding grounds destroyed</p>
+            </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High-Risk Zones</CardTitle>
-            <ShieldAlert className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{highRiskCount}</div>
-            <p className="text-xs text-muted-foreground">active high-risk areas</p>
-          </CardContent>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">High-Risk Zones</CardTitle>
+                <ShieldAlert className="h-4 w-4 text-red-500" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{highRiskCount}</div>
+                <p className="text-xs text-muted-foreground">active high-risk areas</p>
+            </CardContent>
         </Card>
       </div>
-      
-      <WeatherRiskCard weatherData={weatherData} riskPrediction={riskPrediction} />
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ClientMap reports={reports} />
+        <WeatherRiskCard weatherData={weatherData} riskPrediction={riskPrediction} />
+      </div>
     </div>
   );
 }

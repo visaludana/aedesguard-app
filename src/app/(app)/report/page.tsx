@@ -8,11 +8,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Lightbulb, Loader2, ShieldAlert, Upload } from 'lucide-react';
+import { Lightbulb, Loader2, Locate, ShieldAlert, Upload } from 'lucide-react';
 import React, { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const initialState = {};
+
+// Dynamically import the map component
+const ReportLocationMap = dynamic(() => import('@/components/report-location-map').then(mod => mod.ReportLocationMap), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[300px] w-full rounded-lg" />
+});
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -27,6 +35,7 @@ function SubmitButton() {
 export default function ReportPage() {
   const [state, formAction] = useFormState(reportBreedingSite, initialState);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [location, setLocation] = useState({ lat: 7.8731, lng: 80.7718 }); // Default to Sri Lanka center
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -63,6 +72,15 @@ export default function ReportPage() {
                 <Input id="image" name="image" type="file" accept="image/*" required onChange={handleFileChange} />
               </div>
             </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="location">Breeding Site Location</Label>
+                <div className='text-xs text-muted-foreground flex items-center gap-2'><Locate className='size-3' /> Click the map to pin the location or allow location access.</div>
+                <ReportLocationMap location={location} setLocation={setLocation} />
+                <input type="hidden" name="lat" value={location.lat} />
+                <input type="hidden" name="lng" value={location.lng} />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="habitatDescription">Habitat Description</Label>
               <Textarea
@@ -70,15 +88,15 @@ export default function ReportPage() {
                 name="habitatDescription"
                 placeholder="e.g., Stagnant water in a discarded tire behind the house."
                 required
-                rows={4}
+                rows={3}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="locationName">Location Name</Label>
+              <Label htmlFor="locationName">Location Name / Address</Label>
               <Input
                 id="locationName"
                 name="locationName"
-                placeholder="e.g., Colombo, Kandy"
+                placeholder="e.g., No. 123, Galle Road, Colombo 3"
                 required
               />
             </div>
