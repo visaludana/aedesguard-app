@@ -5,9 +5,9 @@ export type WeatherData = {
 };
 
 export async function getWeatherData(lat: number, lon: number): Promise<WeatherData | null> {
-  const apiKey = process.env.OPENWEATHER_API_KEY;
+  const apiKey = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
   if (!apiKey) {
-    console.error("OPENWEATHER_API_KEY is not set in .env file.");
+    console.error("NEXT_PUBLIC_OPENWEATHER_API_KEY is not set in .env file.");
     return null;
   }
 

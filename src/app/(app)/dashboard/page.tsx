@@ -4,6 +4,7 @@ import { CheckCircle, Droplets, ShieldAlert, Target, Thermometer, Umbrella } fro
 import { getWeatherData, type WeatherData } from '@/lib/weather';
 import { predictWeatherRisk, type PredictWeatherRiskOutput } from '@/ai/flows/predict-weather-risk';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function getRiskBadgeVariant(riskLevel: number): 'destructive' | 'secondary' | 'default' {
   if (riskLevel > 8) return 'destructive';
@@ -12,20 +13,31 @@ function getRiskBadgeVariant(riskLevel: number): 'destructive' | 'secondary' | '
 }
 
 function WeatherRiskCard({ weatherData, riskPrediction }: { weatherData: WeatherData | null, riskPrediction: PredictWeatherRiskOutput | null }) {
-  if (!weatherData || !riskPrediction) {
+    const errorMessage = 
+      !weatherData ? "Could not load weather data. Please ensure your API key is correct and the service is available."
+    : !riskPrediction ? "Could not generate AI risk prediction. The AI service may be unavailable."
+    : null;
+
+  if (errorMessage) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Weather-Based Risk Forecast</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Could not load weather data or risk prediction. Please ensure your OpenWeather API key is set in the .env file.
-          </p>
+          <Alert variant="destructive">
+              <ShieldAlert className="h-4 w-4" />
+              <AlertTitle>Data Unavailable</AlertTitle>
+              <AlertDescription>
+                {errorMessage}
+              </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );
   }
+  
+  if (!weatherData || !riskPrediction) return null;
 
   return (
     <Card>
