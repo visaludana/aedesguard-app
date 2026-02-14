@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import type { SurveillanceReport } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import 'leaflet/dist/leaflet.css';
-import * as L from 'leaflet';
+import L from 'leaflet';
 
 // This is to fix the default icon issue with webpack
 // @ts-ignore
