@@ -1,7 +1,23 @@
 import { getReports } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, ShieldAlert, Target } from 'lucide-react';
-import ClientMap from '@/components/client-map';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const MapView = dynamic(() => import('@/components/map-view').then(mod => mod.MapView), { 
+  ssr: false,
+  loading: () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Live Heatmap</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-[400px] w-full" />
+      </CardContent>
+    </Card>
+  )
+});
+
 
 export default async function DashboardPage() {
   const reports = await getReports();
@@ -45,7 +61,7 @@ export default async function DashboardPage() {
         </Card>
       </div>
       <div>
-        <ClientMap reports={reports} />
+        <MapView reports={reports} />
       </div>
     </div>
   );
