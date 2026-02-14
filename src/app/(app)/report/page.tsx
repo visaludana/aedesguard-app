@@ -9,15 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Lightbulb, Loader2, ShieldAlert, Upload } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const ReportLocationMap = dynamic(() => import('@/components/report-location-map').then(mod => mod.ReportLocationMap), {
-  ssr: false,
-  loading: () => <Skeleton className="h-[300px] w-full rounded-lg" />
-});
 
 const initialState = {};
 
@@ -32,6 +27,11 @@ function SubmitButton() {
 }
 
 export default function ReportPage() {
+  const ReportLocationMap = React.useMemo(() => dynamic(() => import('@/components/report-location-map').then(mod => mod.ReportLocationMap), {
+    ssr: false,
+    loading: () => <Skeleton className="h-[300px] w-full rounded-lg" />
+  }), []);
+
   const [state, formAction] = useFormState(reportBreedingSite, initialState);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [location, setLocation] = useState({ lat: 7.8731, lng: 80.7718 });

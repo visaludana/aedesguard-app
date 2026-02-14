@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,5 +21,6 @@ const MapView = dynamic(() => import('@/components/map-view').then(mod => mod.Ma
 });
 
 export default function ClientMap({ reports }: { reports: SurveillanceReport[] }) {
-  return <MapView reports={reports} />;
+  const MemoizedMapView = React.useMemo(() => MapView, []);
+  return <MemoizedMapView reports={reports} />;
 }
