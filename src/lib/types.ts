@@ -16,6 +16,12 @@ export type SurveillanceReport = {
   userAvatarHint?: string;
 };
 
+export type District = {
+  name: string;
+  lat: number;
+  lng: number;
+};
+
 export type DistrictRisk = {
   name: string;
   riskLevel: number;
@@ -25,5 +31,3 @@ export type DistrictRisk = {
   humidity: number;
   rainfall: number;
 };
-
-    
