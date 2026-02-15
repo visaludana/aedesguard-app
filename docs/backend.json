@@ -170,6 +170,49 @@
         "description",
         "isResolved"
       ]
+    },
+    "DistrictRisk": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DistrictRisk",
+      "type": "object",
+      "description": "Stores the calculated weather-based mosquito breeding risk for a specific district.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the district."
+        },
+        "riskLevel": {
+          "type": "number",
+          "description": "The calculated risk level (1-10)."
+        },
+        "assessment": {
+          "type": "string",
+          "description": "The AI-generated assessment of the risk."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the risk was last updated.",
+          "format": "date-time"
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Temperature in Celsius at the time of calculation."
+        },
+        "humidity": {
+          "type": "number",
+          "description": "Humidity percentage at the time of calculation."
+        },
+        "rainfall": {
+          "type": "number",
+          "description": "Rainfall in mm at the time of calculation."
+        }
+      },
+      "required": [
+        "name",
+        "riskLevel",
+        "assessment",
+        "updatedAt"
+      ]
     }
   },
   "auth": {
@@ -181,7 +224,7 @@
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}/userProfile",
+        "path": "/users/{userId}",
         "definition": {
           "entityName": "UserProfile",
           "schema": {
@@ -259,8 +302,26 @@
             }
           ]
         }
+      },
+      {
+        "path": "/district_risks/{districtName}",
+        "definition": {
+          "entityName": "DistrictRisk",
+          "schema": {
+            "$ref": "#/backend/entities/DistrictRisk"
+          },
+          "description": "Stores cached weather-based risk assessments for each district. Publicly readable for map visualization, but only writable by a trusted server process to prevent recalculating on every load.",
+          "params": [
+            {
+              "name": "districtName",
+              "description": "The name of the Sri Lankan district."
+            }
+          ]
+        }
       }
     ],
     "reasoning": "The Firestore data structure for AedesGuard AI is designed to prioritize Authorization Independence, Structural Segregation, and clear Access Modeling, ensuring a secure, scalable, and debuggable system. \n\n**Authorization Independence:** All documents incorporate denormalized authorization context where necessary. For `SurveillanceReport` documents, the `submittedById` field is explicitly stored within each report. This allows Firestore Security Rules to directly check `request.auth.uid == resource.data.submittedById` for submitter-specific access, eliminating the need for `get()` calls to parent or related documents. Similarly, `PHIAlert` documents denormalize `locationLatitude`, `locationLongitude`, and `riskLevel` from the originating `SurveillanceReport`, ensuring that rules for `PHIAlerts` do not depend on fetching the parent report. PHI roles are managed via a dedicated `/roles_phi/{phiId}` collection, enabling authorization based on document existence rather than requiring complex `get()` operations or custom claims.\n\n**Structural Segregation (QAPs):** The core principle of 'Query Against Permissions' (QAPs) is achieved through structural segregation, particularly for `SurveillanceReport` data. Instead of mixing public and private information in a single collection, we introduce two distinct collections:\n\n1.  `/surveillance_reports_private/{reportId}`: This collection stores the complete, detailed `SurveillanceReport` data, including sensitive information like original image URLs, habitat descriptions, and full risk reports. Access to this collection is restricted to the original submitter (`submittedById`) and authorized PHIs, ensuring data privacy and integrity.\n2.  `/surveillance_reports_public_map_data/{reportId}`: This collection serves the real-time heatmap visualization. It contains only a minimal subset of `SurveillanceReport` data (`latitude`, `longitude`, `riskLevel`, `isNeutralized`, `submittedAt`, and a reference to the private report). This collection is publicly readable, allowing any user to fetch data for the heatmap without exposing private details or requiring client-side filtering. This design guarantees that `list` operations for the heatmap are inherently secure and efficient, as rules can simply grant read access to this collection. The `riskLevel` field is stored directly in the database within both report types, directly addressing the user's requirement to save risk calculations and avoid re-computation for map visualization.\n\n**Access Modeling:**\n*   **Private User Data:** `UserProfile` data is stored in `/users/{userId}/userProfile`, adhering to path-based ownership where `{userId}` matches `request.auth.uid` for simple, secure access control.\n*   **Global Roles (DBAC):** PHI access is controlled by the existence of a document in `/roles_phi/{phiId}`, allowing for straightforward role-based authorization.\n*   **Restricted Operational Data:** `PHIAlerts` are stored in `/phi_alerts/{alertId}`, accessible only by authenticated PHIs, ensuring that these critical operational alerts are only seen by relevant personnel.\n\nThis structure ensures that security rules are explicit, concise, and easy to debug, as each collection has a clear and homogeneous security posture, and authorization dependencies are minimized through denormalization."
   }
 }
+
+    

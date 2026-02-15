@@ -9,6 +9,9 @@ import ClientMap from '@/components/client-map';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { districts } from '@/lib/sri-lanka-districts';
 import DistrictRiskMap from '@/components/district-risk-map';
+import type { DistrictRisk } from '@/lib/types';
+import { getDistrictRisks, updateDistrictRisk } from '@/lib/db';
+import { differenceInHours } from 'date-fns';
 
 export function getRiskBadgeVariant(riskLevel: number): 'destructive' | 'secondary' | 'default' {
   if (riskLevel > 8) return 'destructive';
@@ -78,20 +81,13 @@ function WeatherRiskCard({ weatherData, riskPrediction }: { weatherData: Weather
   );
 }
 
-export type DistrictRisk = {
-  name: string;
-  weather: WeatherData | null;
-  risk: PredictWeatherRiskOutput | null;
-};
 
 async function RiskMapView({ districtsWithRisk }: { districtsWithRisk: DistrictRisk[] }) {
   const highestRiskDistrict = [...districtsWithRisk]
-    .filter(d => d.risk)
-    .sort((a, b) => b.risk!.riskLevel - a.risk!.riskLevel)[0];
+    .sort((a, b) => b.riskLevel - a.riskLevel)[0];
 
   const topFiveRisks = [...districtsWithRisk]
-    .filter(d => d.risk)
-    .sort((a, b) => b.risk!.riskLevel - a.risk!.riskLevel)
+    .sort((a, b) => b.riskLevel - a.riskLevel)
     .slice(0, 5);
 
   return (
@@ -103,13 +99,13 @@ async function RiskMapView({ districtsWithRisk }: { districtsWithRisk: DistrictR
           <CardDescription>AI-powered risk assessment based on live weather data.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {highestRiskDistrict && highestRiskDistrict.risk ? (
+          {highestRiskDistrict ? (
             <div>
               <p className="text-sm">
                 Highest risk district: <strong>{highestRiskDistrict.name}</strong>
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {highestRiskDistrict.risk.assessment}
+                {highestRiskDistrict.assessment}
               </p>
             </div>
           ) : (
@@ -121,7 +117,7 @@ async function RiskMapView({ districtsWithRisk }: { districtsWithRisk: DistrictR
               {topFiveRisks.map(d => (
                 <li key={d.name} className="flex justify-between items-center text-sm">
                   <span>{d.name}</span>
-                  <Badge variant={getRiskBadgeVariant(d.risk!.riskLevel)}>{d.risk!.riskLevel}/10 Risk</Badge>
+                  <Badge variant={getRiskBadgeVariant(d.riskLevel)}>{d.riskLevel}/10 Risk</Badge>
                 </li>
               ))}
             </ul>
@@ -135,9 +131,10 @@ async function RiskMapView({ districtsWithRisk }: { districtsWithRisk: DistrictR
 
 export default async function DashboardPage() {
   // Fetch data for surveillance view
-  const [reports, colomboWeather] = await Promise.all([
+  const [reports, colomboWeather, cachedDistrictRisks] = await Promise.all([
     getReports(),
-    getWeatherData(6.9271, 79.8612) 
+    getWeatherData(6.9271, 79.8612),
+    getDistrictRisks()
   ]);
 
   let colomboRisk: PredictWeatherRiskOutput | null = null;
@@ -153,26 +150,53 @@ export default async function DashboardPage() {
     }
   }
 
-  // Fetch data for district risk map view
-  const districtRiskPromises = districts.map(async (district): Promise<DistrictRisk> => {
+  // Process district risks, fetching new data for stale caches
+  const STALE_THRESHOLD_HOURS = 1;
+
+  const districtsWithRisk = await Promise.all(districts.map(async (district): Promise<DistrictRisk | null> => {
+    const cachedRisk = cachedDistrictRisks.find(r => r.name === district.name);
+    
+    if (cachedRisk && differenceInHours(new Date(), new Date(cachedRisk.updatedAt)) < STALE_THRESHOLD_HOURS) {
+      return cachedRisk;
+    }
+
+    // Data is stale or missing, fetch new data
     const weather = await getWeatherData(district.lat, district.lng);
     if (!weather) {
-      return { name: district.name, weather: null, risk: null };
+      // If weather fails, return the stale cache if it exists, otherwise null
+      return cachedRisk || null;
     }
+
     try {
-      const risk = await predictWeatherRisk({
+      const riskPrediction = await predictWeatherRisk({
         temperature: weather.temperature,
         humidity: weather.humidity,
         rainfall: weather.rainfall,
       });
-      return { name: district.name, weather, risk };
+      
+      const newRiskData: DistrictRisk = {
+        name: district.name,
+        riskLevel: riskPrediction.riskLevel,
+        assessment: riskPrediction.assessment,
+        updatedAt: new Date().toISOString(),
+        temperature: weather.temperature,
+        humidity: weather.humidity,
+        rainfall: weather.rainfall,
+      };
+
+      // Update Firestore in the background (non-blocking)
+      updateDistrictRisk(district.name, newRiskData);
+
+      return newRiskData;
+
     } catch (e) {
       console.error(`AI risk prediction failed for ${district.name}:`, e);
-      return { name: district.name, weather, risk: null };
+      // If AI fails, return stale cache if it exists, otherwise null
+      return cachedRisk || null;
     }
-  });
+  }));
 
-  const districtsWithRisk = await Promise.all(districtRiskPromises);
+  const validDistrictsWithRisk = districtsWithRisk.filter((d): d is DistrictRisk => d !== null);
 
   const totalReports = reports.length;
   const neutralizedCount = reports.filter((r) => r.isNeutralized).length;
@@ -218,7 +242,7 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">
-                    {districtsWithRisk.filter(d => d.risk).sort((a,b) => b.risk!.riskLevel - a.risk!.riskLevel)[0]?.name ?? '...'}
+                    {validDistrictsWithRisk.sort((a,b) => b.riskLevel - a.riskLevel)[0]?.name ?? '...'}
                 </div>
                 <p className="text-xs text-muted-foreground">based on live weather data</p>
             </CardContent>
@@ -237,9 +261,11 @@ export default async function DashboardPage() {
             </div>
         </TabsContent>
         <TabsContent value="risk" className="mt-4">
-            <RiskMapView districtsWithRisk={districtsWithRisk} />
+            <RiskMapView districtsWithRisk={validDistrictsWithRisk} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
+
+    

@@ -17,20 +17,8 @@
  *   containing non-sensitive data for map visualization. Writes are prohibited from
  *   the client-side to ensure data integrity.
  * - /phi_alerts/{alertId}: Contains operational alerts accessible only by PHIs.
- *
- * Key Security Decisions:
- * - Role-Based Access Control (RBAC): A user's role as a Public Health Inspector (PHI)
- *   is determined by the existence of a document in `/roles_phi/{userId}`. This allows
- *   for efficient and secure role checks without relying on custom claims.
- * - Structural Segregation (QAP): Report data is split into two collections. This
- *   'Query Against Permissions' (QAP) model ensures that public queries for map data
- *   can never accidentally access sensitive information from private reports.
- * - Denormalization for Authorization: Documents like `surveillance_reports_private`
- *   contain a `submittedById` field, allowing rules to verify ownership directly without
- *   costly or insecure `get()` calls to other documents.
- * - Server-Side Management: Critical collections like `/roles_phi` and
- *   `/surveillance_reports_public_map_data` are not writable by clients, enforcing
- *   the principle that roles and public data must be managed by a trusted backend process.
+ * - /district_risks/{districtName}: Caches weather-based risk calculations for districts.
+ *   Publicly readable but not client-writable.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -99,11 +87,7 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && isExistingDoc() && request.resource.data.id == resource.data.id;
-      allow delete: if isOwner(userId) && isExistingDoc();
+      allow read, write: if isOwner(userId);
     }
 
     /**
@@ -116,10 +100,7 @@ service cloud.firestore {
      */
     match /roles_phi/{phiId} {
       allow get: if isPHI();
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow list, write: if false;
     }
 
     /**
@@ -132,7 +113,7 @@ service cloud.firestore {
      */
     match /surveillance_reports_private/{reportId} {
       allow get: if isPHI() || isSubmitter(resource.data);
-      allow list: if false; // Denied to prevent leaking all private reports. Clients must use specific queries.
+      allow list: if isPHI(); // Allow PHIs to list reports
       allow create: if isSignedIn() && request.resource.data.submittedById == request.auth.uid;
       allow update: if isExistingSubmitter() && request.resource.data.submittedById == resource.data.submittedById;
       allow delete: if isExistingSubmitter();
@@ -147,11 +128,8 @@ service cloud.firestore {
      * @principle Protects public data integrity by only allowing writes from a trusted backend.
      */
     match /surveillance_reports_public_map_data/{reportId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow read: if true;
+      allow write: if false;
     }
 
     /**
@@ -162,11 +140,21 @@ service cloud.firestore {
      * @principle Restricts access to an entire data collection based on a specific role (PHI).
      */
     match /phi_alerts/{alertId} {
-      allow get: if isPHI();
-      allow list: if isPHI();
-      allow create: if isPHI();
-      allow update: if isPHI() && isExistingDoc();
-      allow delete: if isPHI() && isExistingDoc();
+      allow read, write: if isPHI();
+    }
+    
+    /**
+     * @description Cached weather-based risk assessments for districts.
+     * @path /district_risks/{districtName}
+     * @allow (read) Anyone can read the cached risk data for map display.
+     * @deny (write) Only a trusted server process can update the cache.
+     * @principle Protects cached data integrity by preventing client-side writes.
+     */
+    match /district_risks/{districtName} {
+        allow read: if true;
+        allow write: if false;
     }
   }
 }
+
+    

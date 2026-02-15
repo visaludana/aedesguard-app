@@ -15,3 +15,15 @@ export type SurveillanceReport = {
   userAvatarUrl?: string;
   userAvatarHint?: string;
 };
+
+export type DistrictRisk = {
+  name: string;
+  riskLevel: number;
+  assessment: string;
+  updatedAt: string; // ISO 8601 date string
+  temperature: number;
+  humidity: number;
+  rainfall: number;
+};
+
+    

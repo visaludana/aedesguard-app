@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { DistrictRisk } from '@/app/(app)/dashboard/page';
+import type { DistrictRisk } from '@/lib/types';
 import { sriLankaDistrictsGeoJSON } from '@/lib/sri-lanka-districts';
 import 'leaflet/dist/leaflet.css';
 import type { Feature, GeoJsonObject } from 'geojson';
@@ -26,7 +26,7 @@ export default function DistrictRiskMap({ districtsWithRisk }: { districtsWithRi
   const mapTilerUrl = `https://api.maptiler.com/maps/dataviz/{z}/{x}/{y}.png?key=${apiKey}`;
   const maptilerAttribution = '&copy; <a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>';
 
-  const isLoading = districtsWithRisk.some(d => d.weather === undefined || d.risk === undefined);
+  const isLoading = districtsWithRisk.length === 0;
 
   if (isLoading) {
     return <Card className='h-full'><CardHeader><CardTitle>District Risk Map</CardTitle><CardDescription>Loading live weather and risk data for all districts...</CardDescription></CardHeader><CardContent><Skeleton className="h-[400px] w-full" /></CardContent></Card>
@@ -50,7 +50,7 @@ export default function DistrictRiskMap({ districtsWithRisk }: { districtsWithRi
   const style: StyleFunction = (feature?: Feature) => {
     const districtName = feature?.properties.DISTRICT;
     const districtData = districtsWithRisk.find(d => d.name === districtName);
-    const riskLevel = districtData?.risk?.riskLevel;
+    const riskLevel = districtData?.riskLevel;
 
     return {
       fillColor: getRiskColor(riskLevel),
@@ -70,24 +70,21 @@ export default function DistrictRiskMap({ districtsWithRisk }: { districtsWithRi
         let popupContent = `<div class="font-sans">`;
         popupContent += `<h3 class="font-bold text-base mb-2">${districtName}</h3>`;
 
-        if (districtData.risk && districtData.weather) {
-            const riskVariant = getRiskBadgeVariant(districtData.risk.riskLevel);
-            popupContent += `<div class="mb-2"><span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent ${riskVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : riskVariant === 'secondary' ? 'bg-secondary text-secondary-foreground' : 'bg-primary text-primary-foreground'}">Risk: ${districtData.risk.riskLevel}/10</span></div>`;
-            popupContent += `<p class="text-xs text-gray-500 mb-2">${districtData.risk.assessment}</p>`;
-            popupContent += `<div class="flex justify-around text-xs text-center border-t pt-2">
-                <div class="flex flex-col items-center gap-1 w-1/3">
-                    <span class="font-bold">${districtData.weather.temperature.toFixed(1)}°C</span><span class="text-gray-500">Temp</span>
-                </div>
-                <div class="flex flex-col items-center gap-1 w-1/3">
-                    <span class="font-bold">${districtData.weather.humidity}%</span><span class="text-gray-500">Humidity</span>
-                </div>
-                 <div class="flex flex-col items-center gap-1 w-1/3">
-                    <span class="font-bold">${districtData.weather.rainfall} mm</span><span class="text-gray-500">Rain</span>
-                </div>
-            </div>`;
-        } else {
-            popupContent += `<p class="text-xs text-gray-500">Weather or risk data unavailable.</p>`;
-        }
+        const riskVariant = getRiskBadgeVariant(districtData.riskLevel);
+        popupContent += `<div class="mb-2"><span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent ${riskVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : riskVariant === 'secondary' ? 'bg-secondary text-secondary-foreground' : 'bg-primary text-primary-foreground'}">Risk: ${districtData.riskLevel}/10</span></div>`;
+        popupContent += `<p class="text-xs text-gray-500 mb-2">${districtData.assessment}</p>`;
+        popupContent += `<div class="flex justify-around text-xs text-center border-t pt-2">
+            <div class="flex flex-col items-center gap-1 w-1/3">
+                <span class="font-bold">${districtData.temperature.toFixed(1)}°C</span><span class="text-gray-500">Temp</span>
+            </div>
+            <div class="flex flex-col items-center gap-1 w-1/3">
+                <span class="font-bold">${districtData.humidity}%</span><span class="text-gray-500">Humidity</span>
+            </div>
+             <div class="flex flex-col items-center gap-1 w-1/3">
+                <span class="font-bold">${districtData.rainfall} mm</span><span class="text-gray-500">Rain</span>
+            </div>
+        </div>`;
+
         popupContent += `</div>`;
 
         layer.bindPopup(popupContent);
@@ -132,3 +129,6 @@ export default function DistrictRiskMap({ districtsWithRisk }: { districtsWithRi
   );
 }
 
+
+
+    
