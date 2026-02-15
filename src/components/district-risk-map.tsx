@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Badge } from './ui/badge';
 import { getRiskBadgeVariant } from '@/app/(app)/dashboard/page';
 import { Droplets, Thermometer, Umbrella } from 'lucide-react';
-import { Skeleton } from './ui/skeleton';
+import { Progress } from './ui/progress';
 
 function getRiskColor(riskLevel: number | undefined): string {
   if (riskLevel === undefined) return '#A1A1AA'; // neutral gray for no data
@@ -29,7 +29,18 @@ export default function DistrictRiskMap({ districtsWithRisk }: { districtsWithRi
   const isLoading = districtsWithRisk.length === 0;
 
   if (isLoading) {
-    return <Card className='h-full'><CardHeader><CardTitle>District Risk Map</CardTitle><CardDescription>Loading live weather and risk data for all districts...</CardDescription></CardHeader><CardContent><Skeleton className="h-[400px] w-full" /></CardContent></Card>
+    return (
+        <Card className='h-full'>
+            <CardHeader>
+                <CardTitle>District Risk Map</CardTitle>
+                <CardDescription>Loading live weather and risk data for all districts...</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center h-[400px] space-y-4">
+                <p className="text-sm text-muted-foreground">Calculating risks...</p>
+                <Progress className="w-3/4" />
+            </CardContent>
+        </Card>
+    );
   }
   
   if (!apiKey) {
