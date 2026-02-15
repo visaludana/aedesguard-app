@@ -48,7 +48,7 @@ export default function DistrictRiskMap({ districtsWithRisk }: { districtsWithRi
   }
 
   const style: StyleFunction = (feature?: Feature) => {
-    const districtName = feature?.properties.name;
+    const districtName = feature?.properties.DISTRICT;
     const districtData = districtsWithRisk.find(d => d.name === districtName);
     const riskLevel = districtData?.risk?.riskLevel;
 
@@ -63,7 +63,7 @@ export default function DistrictRiskMap({ districtsWithRisk }: { districtsWithRi
   };
 
   const onEachFeature = (feature: Feature, layer: Layer) => {
-    const districtName = feature.properties.name;
+    const districtName = feature.properties.DISTRICT;
     const districtData = districtsWithRisk.find(d => d.name === districtName);
     
     if (districtData) {
@@ -131,3 +131,4 @@ export default function DistrictRiskMap({ districtsWithRisk }: { districtsWithRi
     </Card>
   );
 }
+
