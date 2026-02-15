@@ -44,7 +44,7 @@ export async function getDistrictRisk(districtName: string): Promise<DistrictRis
  * Updates or creates a district's risk assessment in Firestore.
  * Uses a non-blocking write.
  */
-export function updateDistrictRisk(districtName: string, data: Omit<DistrictRisk, 'name'>) {
+export async function updateDistrictRisk(districtName: string, data: Omit<DistrictRisk, 'name'>) {
   const docRef = doc(firestore, 'district_risks', districtName);
   const dataToSet: DistrictRisk = {
     name: districtName,
@@ -54,5 +54,3 @@ export function updateDistrictRisk(districtName: string, data: Omit<DistrictRisk
   // The client will eventually get the updated data on the next load.
   setDocumentNonBlocking(docRef, dataToSet, { merge: true });
 }
-
-    
