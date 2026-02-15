@@ -1,3 +1,4 @@
+
 import type { FeatureCollection } from 'geojson';
 
 export const districts = [
@@ -31,130 +32,305 @@ export const districts = [
 export const sriLankaDistrictsGeoJSON: FeatureCollection = {
     "type": "FeatureCollection",
     "features": [
-        {
-            "type": "Feature",
-            "properties": { "district": "Colombo", "province": "Western" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 79.846, 6.953 ], [ 79.914, 6.999 ], [ 80.009, 6.954 ], [ 80.06, 6.89 ], [ 80.08, 6.812 ], [ 79.981, 6.757 ], [ 79.86, 6.78 ], [ 79.846, 6.953 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Gampaha", "province": "Western" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 79.824, 7.292 ], [ 79.938, 7.301 ], [ 80.0, 7.303 ], [ 80.117, 7.203 ], [ 80.116, 7.153 ], [ 80.009, 6.954 ], [ 79.914, 6.999 ], [ 79.846, 6.953 ], [ 79.824, 7.292 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Kalutara", "province": "Western" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 79.981, 6.757 ], [ 80.08, 6.812 ], [ 80.205, 6.582 ], [ 80.22, 6.51 ], [ 80.11, 6.425 ], [ 79.957, 6.568 ], [ 79.981, 6.757 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Kandy", "province": "Central" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.528, 7.493 ], [ 80.6, 7.498 ], [ 80.686, 7.46 ], [ 80.78, 7.373 ], [ 80.835, 7.221 ], [ 80.75, 7.15 ], [ 80.729, 7.02 ], [ 80.573, 6.953 ], [ 80.46, 7.123 ], [ 80.47, 7.31 ], [ 80.528, 7.493 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Matale", "province": "Central" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.545, 7.962 ], [ 80.649, 7.92 ], [ 80.774, 7.79 ], [ 80.825, 7.55 ], [ 80.686, 7.46 ], [ 80.6, 7.498 ], [ 80.528, 7.493 ], [ 80.47, 7.31 ], [ 80.46, 7.66 ], [ 80.545, 7.962 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Nuwara Eliya", "province": "Central" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.573, 6.953 ], [ 80.729, 7.02 ], [ 80.75, 7.15 ], [ 80.835, 7.221 ], [ 80.963, 7.009 ], [ 80.89, 6.82 ], [ 80.78, 6.78 ], [ 80.55, 6.75 ], [ 80.573, 6.953 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Galle", "province": "Southern" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.07, 6.425 ], [ 80.22, 6.51 ], [ 80.35, 6.27 ], [ 80.32, 6.03 ], [ 80.217, 5.96 ], [ 80.07, 6.425 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Matara", "province": "Southern" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.35, 6.27 ], [ 80.53, 6.3 ], [ 80.6, 6.17 ], [ 80.54, 5.94 ], [ 80.32, 6.03 ], [ 80.35, 6.27 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Hambantota", "province": "Southern" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.6, 6.17 ], [ 80.78, 6.3 ], [ 80.9, 6.6 ], [ 81.1, 6.75 ], [ 81.25, 6.7 ], [ 81.4, 6.4 ], [ 81.23, 6.1 ], [ 80.9, 5.99 ], [ 80.75, 6.0 ], [ 80.6, 6.17 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Jaffna", "province": "Northern" },
-            "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 79.93, 9.8 ], [ 80.0, 9.82 ], [ 80.1, 9.75 ], [ 80.05, 9.6 ], [ 79.9, 9.65 ], [ 79.93, 9.8 ] ] ], [ [ [ 80.2, 9.75 ], [ 80.25, 9.7 ], [ 80.2, 9.65 ], [ 80.15, 9.7 ], [ 80.2, 9.75 ] ] ], [ [ [ 80.4, 9.7 ], [ 80.45, 9.65 ], [ 80.4, 9.6 ], [ 80.35, 9.65 ], [ 80.4, 9.7 ] ] ], [ [ [ 80.5, 9.8 ], [ 80.55, 9.75 ], [ 80.5, 9.7 ], [ 80.45, 9.75 ], [ 80.5, 9.8 ] ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Kilinochchi", "province": "Northern" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.1, 9.5 ], [ 80.25, 9.55 ], [ 80.4, 9.6 ], [ 80.6, 9.5 ], [ 80.5, 9.3 ], [ 80.2, 9.25 ], [ 80.1, 9.5 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Mannar", "province": "Northern" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 79.75, 9.1 ], [ 79.9, 9.2 ], [ 80.05, 9.0 ], [ 80.2, 9.25 ], [ 80.5, 9.3 ], [ 80.4, 8.8 ], [ 80.1, 8.6 ], [ 79.75, 9.1 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Vavuniya", "province": "Northern" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.2, 9.25 ], [ 80.5, 9.3 ], [ 80.8, 9.1 ], [ 80.7, 8.7 ], [ 80.6, 8.5 ], [ 80.3, 8.6 ], [ 80.1, 8.6 ], [ 80.2, 9.25 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Mullaitivu", "province": "Northern" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.5, 9.3 ], [ 80.6, 9.5 ], [ 80.8, 9.4 ], [ 81.1, 9.1 ], [ 80.8, 9.1 ], [ 80.5, 9.3 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Batticaloa", "province": "Eastern" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 81.3, 8.2 ], [ 81.5, 8.0 ], [ 81.7, 7.9 ], [ 81.8, 7.6 ], [ 81.7, 7.4 ], [ 81.4, 7.3 ], [ 81.3, 8.2 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Ampara", "province": "Eastern" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 81.4, 7.3 ], [ 81.7, 7.4 ], [ 81.8, 7.6 ], [ 81.85, 7.2 ], [ 81.6, 6.8 ], [ 81.3, 7.0 ], [ 81.4, 7.3 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Trincomalee", "province": "Eastern" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.8, 9.1 ], [ 81.1, 9.1 ], [ 81.2, 8.8 ], [ 81.25, 8.5 ], [ 81.1, 8.3 ], [ 80.9, 8.4 ], [ 80.6, 8.5 ], [ 80.8, 9.1 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Kurunegala", "province": "North Western" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 79.938, 7.301 ], [ 80.117, 7.203 ], [ 80.46, 7.123 ], [ 80.47, 7.31 ], [ 80.46, 7.66 ], [ 80.3, 8.0 ], [ 80.0, 7.8 ], [ 79.938, 7.301 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Puttalam", "province": "North Western" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 79.7, 8.5 ], [ 79.8, 8.3 ], [ 79.9, 8.0 ], [ 80.0, 7.8 ], [ 80.3, 8.0 ], [ 80.1, 8.6 ], [ 79.7, 8.5 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Anuradhapura", "province": "North Central" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.1, 8.6 ], [ 80.3, 8.6 ], [ 80.6, 8.5 ], [ 80.9, 8.4 ], [ 81.1, 8.3 ], [ 80.9, 8.0 ], [ 80.545, 7.962 ], [ 80.46, 7.66 ], [ 80.3, 8.0 ], [ 80.1, 8.6 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Polonnaruwa", "province": "North Central" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.825, 7.55 ], [ 80.774, 7.79 ], [ 80.649, 7.92 ], [ 80.545, 7.962 ], [ 80.9, 8.0 ], [ 81.1, 8.3 ], [ 81.3, 8.2 ], [ 81.0, 7.5 ], [ 80.825, 7.55 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Badulla", "province": "Uva" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.89, 6.82 ], [ 80.963, 7.009 ], [ 80.835, 7.221 ], [ 81.0, 7.5 ], [ 81.3, 7.0 ], [ 81.1, 6.75 ], [ 80.9, 6.6 ], [ 80.89, 6.82 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Moneragala", "province": "Uva" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.9, 6.6 ], [ 81.1, 6.75 ], [ 81.25, 6.7 ], [ 81.4, 6.4 ], [ 81.6, 6.8 ], [ 81.3, 7.0 ], [ 80.9, 6.6 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Ratnapura", "province": "Sabaragamuwa" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.205, 6.582 ], [ 80.55, 6.75 ], [ 80.78, 6.78 ], [ 80.6, 6.17 ], [ 80.53, 6.3 ], [ 80.35, 6.27 ], [ 80.205, 6.582 ] ] ] }
-        },
-        {
-            "type": "Feature",
-            "properties": { "district": "Kegalle", "province": "Sabaragamuwa" },
-            "geometry": { "type": "Polygon", "coordinates": [ [ [ 80.117, 7.203 ], [ 80.116, 7.153 ], [ 80.46, 7.123 ], [ 80.573, 6.953 ], [ 80.55, 6.75 ], [ 80.205, 6.582 ], [ 80.08, 6.812 ], [ 80.06, 6.89 ], [ 80.117, 7.203 ] ] ] }
+      {
+        "type": "Feature",
+        "properties": { "district": "Ampara", "province": "Eastern" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [81.855, 7.575], [81.87, 7.35], [81.675, 7.292], [81.67, 6.7], [81.4, 6.45], [81.32, 6.8], [81.5, 7.2], [81.855, 7.575]
+            ]
+          ]
         }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Anuradhapura", "province": "North Central" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.02, 8.85], [80.45, 8.9], [80.75, 8.7], [81.0, 8.35], [80.7, 7.7], [80.35, 7.4], [80.2, 7.75], [79.9, 8.2], [80.02, 8.85]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Badulla", "province": "Uva" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.88, 7.2], [81.1, 7.3], [81.25, 7.15], [81.35, 6.8], [80.9, 6.6], [80.75, 6.9], [80.88, 7.2]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Batticaloa", "province": "Eastern" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [81.2, 8.1], [81.5, 8.2], [81.7, 8.0], [81.8, 7.7], [81.675, 7.292], [81.5, 7.2], [81.2, 8.1]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Colombo", "province": "Western" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [79.845, 6.94], [79.9, 6.98], [80.05, 6.92], [80.07, 6.8], [79.95, 6.73], [79.85, 6.79], [79.845, 6.94]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Galle", "province": "Southern" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.05, 6.3], [80.221, 6.54], [80.35, 6.25], [80.45, 6.0], [80.22, 5.95], [80.05, 6.3]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Gampaha", "province": "Western" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [79.82, 7.3], [80.0, 7.31], [80.15, 7.15], [80.05, 6.92], [79.9, 6.98], [79.82, 7.3]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Hambantota", "province": "Southern" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.7, 6.3], [80.9, 6.6], [81.25, 6.7], [81.4, 6.4], [81.118, 6.124], [80.9, 6.0], [80.7, 6.3]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Jaffna", "province": "Northern" },
+        "geometry": {
+          "type": "MultiPolygon",
+          "coordinates": [
+            [[[80.025, 9.661]]],
+            [[[79.8, 9.8], [80.1, 9.85], [80.2, 9.75], [79.9, 9.5], [79.8, 9.8]]],
+            [[[80.3, 9.8], [80.4, 9.75], [80.35, 9.65], [80.25, 9.7], [80.3, 9.8]]]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Kalutara", "province": "Western" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [79.95, 6.73], [80.07, 6.8], [80.221, 6.54], [80.1, 6.35], [79.95, 6.5], [79.95, 6.73]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Kandy", "province": "Central" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.5, 7.5], [80.7, 7.45], [80.8, 7.3], [80.83, 7.1], [80.633, 7.29], [80.45, 7.2], [80.5, 7.5]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Kegalle", "province": "Sabaragamuwa" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.15, 7.15], [80.346, 7.251], [80.5, 7.1], [80.4, 6.8], [80.2, 6.85], [80.15, 7.15]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Kilinochchi", "province": "Northern" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.2, 9.5], [80.4, 9.6], [80.6, 9.4], [80.399, 9.382], [80.1, 9.2], [80.2, 9.5]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Kurunegala", "province": "North Western" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [79.9, 7.7], [80.3, 8.0], [80.5, 7.8], [80.45, 7.2], [80.346, 7.251], [80.0, 7.31], [79.9, 7.7]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Mannar", "province": "Northern" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [79.7, 9.2], [80.0, 9.3], [80.2, 9.1], [80.4, 8.8], [80.1, 8.6], [79.75, 8.7], [79.7, 9.2]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Matale", "province": "Central" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.45, 7.9], [80.7, 7.8], [80.85, 7.5], [80.623, 7.467], [80.45, 7.2], [80.35, 7.4], [80.45, 7.9]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Matara", "province": "Southern" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.45, 6.0], [80.556, 5.954], [80.7, 6.3], [80.5, 6.35], [80.35, 6.25], [80.45, 6.0]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Moneragala", "province": "Uva" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.9, 6.6], [81.35, 6.8], [81.5, 6.6], [81.2, 6.3], [80.9, 6.6]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Mullaitivu", "province": "Northern" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.4, 9.6], [80.8, 9.5], [80.814, 9.267], [80.6, 9.0], [80.3, 9.1], [80.4, 9.6]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Nuwara Eliya", "province": "Central" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.5, 7.1], [80.83, 7.1], [80.95, 6.9], [80.783, 6.968], [80.55, 6.7], [80.5, 7.1]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Polonnaruwa", "province": "North Central" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.7, 7.7], [81.018, 7.94], [81.3, 7.8], [81.2, 7.4], [80.85, 7.5], [80.7, 7.7]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Puttalam", "province": "North Western" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [79.7, 8.5], [79.833, 8.033], [80.0, 7.7], [79.9, 8.2], [79.7, 8.5]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Ratnapura", "province": "Sabaragamuwa" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.2, 6.85], [80.4, 6.8], [80.7, 6.9], [80.8, 6.5], [80.5, 6.35], [80.384, 6.705], [80.2, 6.85]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Trincomalee", "province": "Eastern" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.8, 9.0], [81.215, 8.587], [81.1, 8.3], [80.75, 8.7], [80.8, 9.0]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "district": "Vavuniya", "province": "Northern" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [80.2, 9.1], [80.6, 9.0], [80.7, 8.8], [80.498, 8.751], [80.3, 8.6], [80.2, 9.1]
+            ]
+          ]
+        }
+      }
     ]
-};
+  };
