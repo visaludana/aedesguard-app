@@ -1,12 +1,10 @@
 'use server';
 
-import { initializeFirebase, setDocumentNonBlocking } from '@/firebase';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { firestore } from '@/firebase/server';
+import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import type { DistrictRisk } from './types';
 
 // This is a server-side only file.
-const { firestore } = initializeFirebase();
-
 const districtRisksCol = collection(firestore, 'district_risks');
 
 /**
@@ -42,7 +40,7 @@ export async function getDistrictRisk(districtName: string): Promise<DistrictRis
 
 /**
  * Updates or creates a district's risk assessment in Firestore.
- * Uses a non-blocking write.
+ * This is a fire-and-forget operation on the server.
  */
 export async function updateDistrictRisk(districtName: string, data: Omit<DistrictRisk, 'name'>) {
   const docRef = doc(firestore, 'district_risks', districtName);
@@ -50,7 +48,9 @@ export async function updateDistrictRisk(districtName: string, data: Omit<Distri
     name: districtName,
     ...data,
   };
-  // Use non-blocking write as we don't need to wait for the result on the server.
-  // The client will eventually get the updated data on the next load.
-  setDocumentNonBlocking(docRef, dataToSet, { merge: true });
+  // Fire-and-forget write. We don't await the result on the server.
+  // Errors will be logged on the server if they occur.
+  setDoc(docRef, dataToSet, { merge: true }).catch(error => {
+    console.error(`Failed to update district risk for ${districtName}:`, error);
+  });
 }
