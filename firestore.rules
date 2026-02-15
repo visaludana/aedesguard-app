@@ -1,0 +1,172 @@
+/**
+ * Core Philosophy:
+ * This ruleset enforces a security model based on user ownership, role-based access
+ * control (RBAC), and structural segregation for public data. The primary goal is to
+ * ensure that users can only access their own private data, while designated Public
+ * Health Inspectors (PHIs) have privileged access to operational data like alerts
+ * and private reports. Publicly visible data, such as for the heatmap, is stored
+ * in a separate, read-only collection to prevent data leakage.
+ *
+ * Data Structure:
+ * - /users/{userId}: A user's private profile document, accessible only by that user.
+ * - /roles_phi/{phiId}: A collection where the existence of a document signifies a
+ *   user is a PHI. This collection is managed server-side.
+ * - /surveillance_reports_private/{reportId}: Contains detailed, sensitive report
+ *   information. Access is restricted to the submitting user and read-only for PHIs.
+ * - /surveillance_reports_public_map_data/{reportId}: A public, read-only collection
+ *   containing non-sensitive data for map visualization. Writes are prohibited from
+ *   the client-side to ensure data integrity.
+ * - /phi_alerts/{alertId}: Contains operational alerts accessible only by PHIs.
+ *
+ * Key Security Decisions:
+ * - Role-Based Access Control (RBAC): A user's role as a Public Health Inspector (PHI)
+ *   is determined by the existence of a document in `/roles_phi/{userId}`. This allows
+ *   for efficient and secure role checks without relying on custom claims.
+ * - Structural Segregation (QAP): Report data is split into two collections. This
+ *   'Query Against Permissions' (QAP) model ensures that public queries for map data
+ *   can never accidentally access sensitive information from private reports.
+ * - Denormalization for Authorization: Documents like `surveillance_reports_private`
+ *   contain a `submittedById` field, allowing rules to verify ownership directly without
+ *   costly or insecure `get()` calls to other documents.
+ * - Server-Side Management: Critical collections like `/roles_phi` and
+ *   `/surveillance_reports_public_map_data` are not writable by clients, enforcing
+ *   the principle that roles and public data must be managed by a trusted backend process.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --------------------------------------------------------------------------------
+    // Helper Functions
+    // --------------------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches the provided userId.
+     * This is the foundation of the user-ownership model.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if the document being operated on already exists.
+     * CRITICAL for all update and delete operations to prevent unintended behavior.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+
+    /**
+     * Checks if the authenticated user is a Public Health Inspector (PHI)
+     * by verifying the existence of a role document in the roles_phi collection.
+     */
+    function isPHI() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_phi/$(request.auth.uid));
+    }
+
+    /**
+     * Validates if the authenticated user is the original submitter of a document.
+     * Uses the 'submittedById' field denormalized onto the document itself.
+     */
+    function isSubmitter(docData) {
+      return isSignedIn() && request.auth.uid == docData.submittedById;
+    }
+
+    /**
+     * A secure combination function for update/delete operations, ensuring the user
+     * is the owner AND the document actually exists.
+     */
+    function isExistingSubmitter() {
+      return isExistingDoc() && isSubmitter(resource.data);
+    }
+    
+    // --------------------------------------------------------------------------------
+    // Collection Rules
+    // --------------------------------------------------------------------------------
+
+    /**
+     * @description A user's own profile data.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user creating their own profile document for the first time.
+     * @deny (get) A user trying to read another user's profile.
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && isExistingDoc() && request.resource.data.id == resource.data.id;
+      allow delete: if isOwner(userId) && isExistingDoc();
+    }
+
+    /**
+     * @description Manages Public Health Inspector (PHI) roles. The existence of a
+     * document indicates the user is a PHI. This collection is read-only for clients.
+     * @path /roles_phi/{phiId}
+     * @allow (get) An authenticated PHI checking if another user is also a PHI.
+     * @deny (create) Any client attempting to grant themselves or others PHI role.
+     * @principle Enforces server-side authority for role management.
+     */
+    match /roles_phi/{phiId} {
+      allow get: if isPHI();
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Private, detailed surveillance reports. Accessible by the submitter and PHIs.
+     * @path /surveillance_reports_private/{reportId}
+     * @allow (create) Any authenticated user submitting a new report.
+     * @deny (update) A user attempting to modify a report they did not submit.
+     * @deny (list) Any user attempting to list all private reports to prevent data leakage.
+     * @principle Enforces document ownership for writes and role-based access for reads.
+     */
+    match /surveillance_reports_private/{reportId} {
+      allow get: if isPHI() || isSubmitter(resource.data);
+      allow list: if false; // Denied to prevent leaking all private reports. Clients must use specific queries.
+      allow create: if isSignedIn() && request.resource.data.submittedById == request.auth.uid;
+      allow update: if isExistingSubmitter() && request.resource.data.submittedById == resource.data.submittedById;
+      allow delete: if isExistingSubmitter();
+    }
+
+    /**
+     * @description Public, minimal data for map visualization. This collection is
+     * completely public for reads but locked down for writes.
+     * @path /surveillance_reports_public_map_data/{reportId}
+     * @allow (get, list) Any user or service reading data to display on the public heatmap.
+     * @deny (create, update, delete) Any client attempting to write to this collection.
+     * @principle Protects public data integrity by only allowing writes from a trusted backend.
+     */
+    match /surveillance_reports_public_map_data/{reportId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Operational alerts for Public Health Inspectors.
+     * @path /phi_alerts/{alertId}
+     * @allow (get, list, create) An authenticated PHI reading or creating alerts.
+     * @deny (get) A regular user attempting to read PHI-specific alerts.
+     * @principle Restricts access to an entire data collection based on a specific role (PHI).
+     */
+    match /phi_alerts/{alertId} {
+      allow get: if isPHI();
+      allow list: if isPHI();
+      allow create: if isPHI();
+      allow update: if isPHI() && isExistingDoc();
+      allow delete: if isPHI() && isExistingDoc();
+    }
+  }
+}
