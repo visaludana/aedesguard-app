@@ -32,28 +32,36 @@ export default function DistrictRiskMap({ initialDistrictsWithRisk }: { initialD
   
   useEffect(() => {
     const processDistricts = async () => {
-        const currentData = new Map(initialDistrictsWithRisk.map(d => [d.name, d]));
-        let processedCount = 0;
-
-        for (const district of districts) {
-            const existingData = currentData.get(district.name);
+        setIsLoading(true);
+        const riskDataMap = new Map(initialDistrictsWithRisk.map(d => [d.name, d]));
+        
+        const promises = districts.map(district => {
+            const existingData = riskDataMap.get(district.name);
 
             if (!existingData || differenceInHours(new Date(), new Date(existingData.updatedAt)) >= STALE_THRESHOLD_HOURS) {
-                const newData = await getDistrictRiskData(district as District);
-                if (newData) {
-                    currentData.set(newData.name, newData);
-                }
+                return getDistrictRiskData(district as District).finally(() => {
+                    setLoadedCount(prev => prev + 1);
+                });
+            } else {
+                setLoadedCount(prev => prev + 1);
+                return Promise.resolve(existingData);
             }
-            
-            processedCount++;
-            setLoadedCount(processedCount);
-            setDistrictsWithRisk(Array.from(currentData.values()));
-        }
+        });
 
+        const results = await Promise.all(promises);
+
+        results.forEach(result => {
+            if (result) {
+                riskDataMap.set(result.name, result);
+            }
+        });
+
+        setDistrictsWithRisk(Array.from(riskDataMap.values()));
         setIsLoading(false);
     };
 
     processDistricts();
+    
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

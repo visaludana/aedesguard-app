@@ -1,10 +1,7 @@
 import { getReports } from '@/lib/data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Droplets, ShieldAlert, Target, Thermometer, Umbrella } from 'lucide-react';
-import { getWeatherData, type WeatherData } from '@/lib/weather';
-import { predictWeatherRisk, type PredictWeatherRiskOutput } from '@/ai/flows/predict-weather-risk';
+import { CheckCircle, ShieldAlert, Target } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import ClientMap from '@/components/client-map';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DistrictRiskMap from '@/components/district-risk-map';
@@ -16,88 +13,11 @@ export function getRiskBadgeVariant(riskLevel: number): 'destructive' | 'seconda
   return 'default';
 }
 
-function WeatherRiskCard({ weatherData, riskPrediction }: { weatherData: WeatherData | null, riskPrediction: PredictWeatherRiskOutput | null }) {
-    const errorMessage = 
-      !weatherData ? "Could not load weather data. Please ensure your API key is correct and the service is available."
-    : !riskPrediction ? "Could not generate AI risk prediction. The AI service may be unavailable."
-    : null;
-
-  if (errorMessage) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Weather-Based Risk Forecast</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-              <ShieldAlert className="h-4 w-4" />
-              <AlertTitle>Data Unavailable</AlertTitle>
-              <AlertDescription>
-                {errorMessage}
-              </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
-  
-  if (!weatherData || !riskPrediction) return null;
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Weather-Based Risk Forecast (Colombo)</span>
-           <Badge variant={getRiskBadgeVariant(riskPrediction.riskLevel)}>{riskPrediction.riskLevel}/10 Risk</Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex justify-around text-center border-b pb-4">
-            <div className="flex flex-col items-center gap-1 w-1/3">
-                <Thermometer className="h-6 w-6 text-red-500" />
-                <span className="font-bold">{weatherData.temperature.toFixed(1)}°C</span>
-                <span className="text-xs text-muted-foreground">Temperature</span>
-            </div>
-            <div className="flex flex-col items-center gap-1 w-1/3">
-                <Droplets className="h-6 w-6 text-blue-500" />
-                <span className="font-bold">{weatherData.humidity}%</span>
-                <span className="text-xs text-muted-foreground">Humidity</span>
-            </div>
-            <div className="flex flex-col items-center gap-1 w-1/3">
-                <Umbrella className="h-6 w-6 text-gray-500" />
-                <span className="font-bold">{weatherData.rainfall} mm</span>
-                <span className="text-xs text-muted-foreground">Rain (1h)</span>
-            </div>
-        </div>
-        <div>
-            <h4 className="font-semibold text-sm">AI Assessment</h4>
-            <p className="text-sm text-muted-foreground">{riskPrediction.assessment}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-
 export default async function DashboardPage() {
-  const [reports, colomboWeather, cachedDistrictRisks] = await Promise.all([
+  const [reports, cachedDistrictRisks] = await Promise.all([
     getReports(),
-    getWeatherData(6.9271, 79.8612),
     getDistrictRisks()
   ]);
-
-  let colomboRisk: PredictWeatherRiskOutput | null = null;
-  if (colomboWeather) {
-    try {
-      colomboRisk = await predictWeatherRisk({
-        temperature: colomboWeather.temperature,
-        humidity: colomboWeather.humidity,
-        rainfall: colomboWeather.rainfall,
-      });
-    } catch (e) {
-      console.error("AI risk prediction failed for Colombo:", e);
-    }
-  }
 
   const highestRiskDistrictName = [...cachedDistrictRisks]
     .sort((a,b) => b.riskLevel - a.riskLevel)[0]?.name ?? '...';
@@ -159,10 +79,7 @@ export default async function DashboardPage() {
             <TabsTrigger value="risk">District Risk Map</TabsTrigger>
         </TabsList>
         <TabsContent value="surveillance" className="mt-4">
-            <div className="grid gap-6 lg:grid-cols-2">
-                <ClientMap reports={reports} />
-                <WeatherRiskCard weatherData={colomboWeather} riskPrediction={colomboRisk} />
-            </div>
+            <ClientMap reports={reports} />
         </TabsContent>
         <TabsContent value="risk" className="mt-4">
             <DistrictRiskMap initialDistrictsWithRisk={cachedDistrictRisks} />
