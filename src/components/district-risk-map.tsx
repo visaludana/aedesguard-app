@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { DistrictRisk } from '@/app/(app)/dashboard/page';
@@ -47,7 +48,7 @@ export default function DistrictRiskMap({ districtsWithRisk }: { districtsWithRi
   }
 
   const style: StyleFunction = (feature?: Feature) => {
-    const districtName = feature?.properties.district;
+    const districtName = feature?.properties.name;
     const districtData = districtsWithRisk.find(d => d.name === districtName);
     const riskLevel = districtData?.risk?.riskLevel;
 
@@ -62,12 +63,12 @@ export default function DistrictRiskMap({ districtsWithRisk }: { districtsWithRi
   };
 
   const onEachFeature = (feature: Feature, layer: Layer) => {
-    const districtName = feature.properties.district;
+    const districtName = feature.properties.name;
     const districtData = districtsWithRisk.find(d => d.name === districtName);
     
     if (districtData) {
         let popupContent = `<div class="font-sans">`;
-        popupContent += `<h3 class="font-bold text-base mb-2">${districtName} District</h3>`;
+        popupContent += `<h3 class="font-bold text-base mb-2">${districtName}</h3>`;
 
         if (districtData.risk && districtData.weather) {
             const riskVariant = getRiskBadgeVariant(districtData.risk.riskLevel);
