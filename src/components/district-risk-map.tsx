@@ -74,7 +74,7 @@ export default function DistrictRiskMap({ initialDistrictsWithRisk }: { initialD
   const maptilerAttribution = '&copy; <a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>';
 
   const style: StyleFunction = (feature?: Feature) => {
-    const districtName = feature?.properties.name;
+    const districtName = feature?.properties.DISTRICT;
     const districtData = districtsMap.get(districtName);
     const riskLevel = districtData?.riskLevel;
 
@@ -89,7 +89,7 @@ export default function DistrictRiskMap({ initialDistrictsWithRisk }: { initialD
   };
 
   const onEachFeature = (feature: Feature, layer: Layer) => {
-    const districtName = feature.properties.name;
+    const districtName = feature.properties.DISTRICT;
     const districtData = districtsMap.get(districtName);
     
     if (districtData) {
