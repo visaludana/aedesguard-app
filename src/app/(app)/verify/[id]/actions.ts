@@ -7,8 +7,15 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const verifySchema = z.object({
   reportId: z.string(),
-  afterImage: z.instanceof(File, { message: 'After image is required.' }),
-});
+  afterImage: z.instanceof(File).optional(),
+  afterImageDataUri: z.string().optional(),
+}).refine(
+    (data) => (data.afterImage && data.afterImage.size > 0) || (data.afterImageDataUri && data.afterImageDataUri.length > 0),
+    {
+        message: "An 'after' image is required. Please upload or take a photo.",
+        path: ["afterImage"],
+    }
+);
 
 type VerifyState = {
   isNeutralized?: boolean;
@@ -52,6 +59,7 @@ export async function verifyNeutralization(
   const validatedFields = verifySchema.safeParse({
     reportId: formData.get('reportId'),
     afterImage: formData.get('afterImage'),
+    afterImageDataUri: formData.get('afterImageDataUri'),
   });
 
   if (!validatedFields.success) {
@@ -60,7 +68,7 @@ export async function verifyNeutralization(
     };
   }
   
-  const { reportId, afterImage } = validatedFields.data;
+  const { reportId, afterImage, afterImageDataUri } = validatedFields.data;
 
   try {
     const report = await getReportById(reportId);
@@ -68,9 +76,17 @@ export async function verifyNeutralization(
       return { error: 'Report not found.' };
     }
     
-    // Convert the 'after' image file to a data URI
-    const afterImageBuffer = Buffer.from(await afterImage.arrayBuffer());
-    const afterPhotoDataUri = bufferToDataURI(afterImageBuffer, afterImage.type);
+    let finalAfterPhotoDataUri: string;
+    if (afterImageDataUri) {
+      finalAfterPhotoDataUri = afterImageDataUri;
+    } else if (afterImage) {
+        // Convert the 'after' image file to a data URI
+        const afterImageBuffer = Buffer.from(await afterImage.arrayBuffer());
+        finalAfterPhotoDataUri = bufferToDataURI(afterImageBuffer, afterImage.type);
+    } else {
+        // This case should be caught by the schema validation, but as a fallback:
+        return { error: 'No after image provided.' };
+    }
     
     // Get the 'before' image data URI.
     // For this demo, we find a placeholder and use its URL. In a real app, this would come from `report.imageUrl`.
@@ -79,7 +95,7 @@ export async function verifyNeutralization(
 
     const result = await verifyBreedingSiteNeutralization({
         beforePhotoDataUri,
-        afterPhotoDataUri
+        afterPhotoDataUri: finalAfterPhotoDataUri
     });
 
     if (result.isNeutralized) {
