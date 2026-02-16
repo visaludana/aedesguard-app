@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useFirebase, useUser } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -18,19 +17,17 @@ const ADMIN_EMAIL = 'admin@aedesguard.com';
 export default function AdminLoginPage() {
   const { auth } = useFirebase();
   const { user, isUserLoading } = useUser();
-  const router = useRouter();
 
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Redirect a logged in user to the console.
   useEffect(() => {
-    // If a user is already logged in, redirect them.
-    // The admin console page itself will handle authorization.
     if (!isUserLoading && user) {
-      router.push('/admin-console');
+      window.location.href = '/admin-console';
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -45,7 +42,7 @@ export default function AdminLoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, ADMIN_EMAIL, password);
-      // The useEffect will handle the redirect on user state change.
+      window.location.href = '/admin-console';
     } catch (err: any) {
       switch (err.code) {
         case 'auth/user-not-found':
@@ -62,8 +59,7 @@ export default function AdminLoginPage() {
     }
   };
   
-  // Show a loader while checking auth state or if user is already logged in and redirecting.
-  if (isUserLoading || (!isUserLoading && user)) {
+  if (isUserLoading || user) {
     return (
         <div className="flex min-h-screen items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin" />

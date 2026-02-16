@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useFirebase, useUser, errorEmitter } from '@/firebase';
 import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -29,7 +28,6 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export default function LoginPage() {
   const { auth, firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
-  const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,7 +47,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } catch (err: any) {
       switch (err.code) {
         case 'auth/user-not-found':
@@ -77,7 +75,6 @@ export default function LoginPage() {
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
 
-        // Check if user profile exists, if not, create it.
         const userDocRef = doc(firestore, 'users', user.uid);
         const docSnap = await getDoc(userDocRef);
 
@@ -100,7 +97,7 @@ export default function LoginPage() {
                 throw new Error("Could not create user profile after Google sign-in.");
             });
         }
-        router.push('/dashboard');
+        window.location.href = '/dashboard';
     } catch (error: any) {
         if (error.code === 'auth/operation-not-allowed') {
             setError('Google Sign-In is not enabled. Please contact an administrator.');
@@ -198,5 +195,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
