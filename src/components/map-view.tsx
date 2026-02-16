@@ -4,12 +4,58 @@ import { MapContainer, TileLayer, Marker, useMap, Popup } from 'react-leaflet';
 import type { SurveillanceReport } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import 'leaflet/dist/leaflet.css';
-import { divIcon, type LatLng } from 'leaflet';
+import { divIcon, type LatLng, type LocationEvent } from 'leaflet';
 import { Skeleton } from './ui/skeleton';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
+import { Navigation } from 'lucide-react';
+
+// === HELPER FUNCTIONS ===
+
+/**
+ * Calculates distance between two lat/lng coordinates in meters.
+ * @param from - The starting point.
+ * @param to - The destination point.
+ * @returns The distance in meters.
+ */
+function getDistance(from: { lat: number; lng: number }, to: { lat: number; lng: number }): number {
+    const R = 6371e3; // Earth's radius in metres
+    const phi1 = from.lat * Math.PI / 180;
+    const phi2 = to.lat * Math.PI / 180;
+    const deltaPhi = (to.lat - from.lat) * Math.PI / 180;
+    const deltaLambda = (to.lng - from.lng) * Math.PI / 180;
+
+    const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+}
+
+/**
+ * Calculates the bearing from one point to another.
+ * @param start - The starting point.
+ * @param end - The destination point.
+ * @returns The bearing in degrees.
+ */
+function getBearing(start: { lat: number; lng: number }, end: { lat: number; lng: number }): number {
+    const phi1 = start.lat * Math.PI / 180;
+    const phi2 = end.lat * Math.PI / 180;
+    const lambda1 = start.lng * Math.PI / 180;
+    const lambda2 = end.lng * Math.PI / 180;
+
+    const y = Math.sin(lambda2 - lambda1) * Math.cos(phi2);
+    const x = Math.cos(phi1) * Math.sin(phi2) -
+              Math.sin(phi1) * Math.cos(phi2) * Math.cos(lambda2 - lambda1);
+    const theta = Math.atan2(y, x);
+    return (theta * 180 / Math.PI + 360) % 360; // Convert to degrees
+}
+
+
+// === CHILD COMPONENTS ===
 
 type MapViewProps = {
   reports: SurveillanceReport[];
@@ -26,17 +72,25 @@ function ChangeView({ center, zoom }: { center: { lat: number, lng: number }, zo
   return null;
 }
 
-// New component for user location
-function UserLocationMarker() {
+// Component to get user location and pass it up
+function UserLocationMarker({ onLocationFound }: { onLocationFound: (pos: LatLng) => void }) {
     const [position, setPosition] = useState<LatLng | null>(null);
     const map = useMap();
 
     useEffect(() => {
-        map.locate({ setView: true, maxZoom: 13, watch: true });
-        map.on("locationfound", function (e) {
+        map.locate({ watch: true, setView: false }); // Watch position without automatically setting view
+        
+        const handleLocation = (e: LocationEvent) => {
             setPosition(e.latlng);
-        });
-    }, [map]);
+            onLocationFound(e.latlng);
+        };
+        
+        map.on("locationfound", handleLocation);
+
+        return () => {
+            map.off("locationfound", handleLocation);
+        };
+    }, [map, onLocationFound]);
 
     const userIcon = divIcon({
         html: `
@@ -57,10 +111,99 @@ function UserLocationMarker() {
     );
 }
 
+// Compass component to show direction to a nearby site
+function Compass({ bearing, distance }: { bearing: number; distance: number }) {
+  return (
+    <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2">
+        <div className="bg-background/80 p-2 rounded-full shadow-lg backdrop-blur-sm">
+            <Navigation
+                className="h-10 w-10 text-primary transition-transform duration-500"
+                style={{ transform: `rotate(${bearing}deg)` }}
+            />
+        </div>
+        <p className="text-white bg-black/50 px-2 py-1 rounded-md text-sm font-medium">
+            {distance.toFixed(0)}m
+        </p>
+    </div>
+  );
+}
+
+
+// === MAIN MAP COMPONENT ===
+
 export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom = 8 }: MapViewProps) {
   const apiKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
   const mapTilerUrl = `https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=${apiKey}`;
   const maptilerAttribution = '&copy; <a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>';
+
+  const [userPosition, setUserPosition] = useState<LatLng | null>(null);
+  const [heading, setHeading] = useState<number | null>(null);
+  const [nearbySite, setNearbySite] = useState<{ report: SurveillanceReport, distance: number } | null>(null);
+  const [bearing, setBearing] = useState<number>(0);
+
+  // Find the first high-risk, active report to center the map on.
+  const highRiskReport = reports.find(r => !r.isNeutralized && r.riskLevel > 8);
+  const initialCenter = highRiskReport ? highRiskReport.location : center;
+  const initialZoom = highRiskReport ? 13 : zoom;
+  
+  const [mapCenter, setMapCenter] = useState(initialCenter);
+  const [mapZoom, setMapZoom] = useState(initialZoom);
+  const [userLocated, setUserLocated] = useState(false);
+
+  const handleLocationFound = (latlng: LatLng) => {
+    setUserPosition(latlng);
+    if (!highRiskReport && !userLocated) {
+        setMapCenter(latlng);
+        setMapZoom(16);
+        setUserLocated(true);
+    }
+  };
+
+  // Effect for device orientation
+  useEffect(() => {
+    const handleOrientation = (event: DeviceOrientationEvent) => {
+      let currentHeading = null;
+      if (event.webkitCompassHeading) { // For Apple devices
+        currentHeading = event.webkitCompassHeading;
+      } else if (event.alpha !== null) { // For standard devices
+        currentHeading = 360 - event.alpha;
+      }
+      setHeading(currentHeading);
+    };
+
+    if ('DeviceOrientationEvent' in window) {
+      window.addEventListener('deviceorientation', handleOrientation);
+    }
+
+    return () => {
+      window.removeEventListener('deviceorientation', handleOrientation);
+    };
+  }, []);
+
+  // Effect to calculate distance/bearing to nearby sites
+  useEffect(() => {
+    if (!userPosition) return;
+
+    let closestSite: { report: SurveillanceReport, distance: number } | null = null;
+
+    for (const report of reports) {
+      if (report.isNeutralized) continue;
+      
+      const distance = getDistance(userPosition, report.location);
+      if (distance < 50) { // Check if within 50 meters
+        if (!closestSite || distance < closestSite.distance) {
+          closestSite = { report, distance };
+        }
+      }
+    }
+    setNearbySite(closestSite);
+
+    if (closestSite && heading !== null) {
+      const siteBearing = getBearing(userPosition, closestSite.report.location);
+      // Adjust bearing relative to the device's heading
+      setBearing(siteBearing - heading);
+    }
+  }, [userPosition, reports, heading]);
 
   if (typeof window === 'undefined') {
     return (
@@ -96,7 +239,6 @@ export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom 
                   riskLevel > 5 ? '#F59E0B' : // Amber
                   '#60A5FA'; // Blue
 
-    // This creates a simple pulsing dot effect for high-risk, active sites
     const animation = !isNeutralized && riskLevel > 8 
         ? `
         @keyframes pulse {
@@ -115,12 +257,6 @@ export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom 
       iconAnchor: [8, 8]
     });
   };
-  
-  // Find the first high-risk, active report to center the map on.
-  const highRiskReport = reports.find(r => !r.isNeutralized && r.riskLevel > 8);
-  const mapCenter = highRiskReport ? highRiskReport.location : center;
-  const mapZoom = highRiskReport ? 13 : zoom;
-
 
   return (
     <Card>
@@ -128,10 +264,13 @@ export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom 
             <CardTitle>Live Surveillance Map</CardTitle>
         </CardHeader>
         <CardContent>
-            <div className="h-[400px] w-full overflow-hidden rounded-lg">
+            <div className="h-[400px] w-full overflow-hidden rounded-lg relative">
+                {nearbySite && heading !== null && (
+                    <Compass bearing={bearing} distance={nearbySite.distance} />
+                )}
                 <MapContainer
-                    center={center} // Initial center, will be updated by ChangeView
-                    zoom={zoom}
+                    center={initialCenter}
+                    zoom={initialZoom}
                     style={{ height: '100%', width: '100%' }}
                     className="z-0"
                     scrollWheelZoom={false}
@@ -140,7 +279,7 @@ export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom 
                         url={mapTilerUrl}
                         attribution={maptilerAttribution}
                     />
-                    <UserLocationMarker />
+                    <UserLocationMarker onLocationFound={handleLocationFound} />
                     {reports.map((report) => (
                     <Marker key={report.id} position={report.location} icon={getMarkerIcon(report.riskLevel, report.isNeutralized)}>
                         <Popup minWidth={250}>
