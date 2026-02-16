@@ -3,15 +3,19 @@ import { BarChart, ClipboardPlus } from 'lucide-react';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { getReports } from '@/lib/data';
+import ClientMap from '@/components/client-map';
 
-export default function OfficerDashboardPage() {
+export default async function OfficerDashboardPage() {
+  const reports = await getReports();
+
   return (
     <div className="grid gap-6">
       <Card>
         <CardHeader>
           <CardTitle>Health Officer Tools</CardTitle>
           <CardDescription>
-            Report daily health statistics and view analytics for all districts.
+            Report daily health statistics, view analytics, and monitor surveillance data.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -47,6 +51,9 @@ export default function OfficerDashboardPage() {
           </Link>
         </CardContent>
       </Card>
+
+      <ClientMap reports={reports} />
+      
     </div>
   );
 }
