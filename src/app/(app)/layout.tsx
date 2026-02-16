@@ -65,7 +65,7 @@ const allNavItems = {
     { href: "/report", icon: ShieldPlus, label: "Report Site" },
     { href: "/verify", icon: BadgeCheck, label: "Verify Sites" },
     { href: "/health-report", icon: ClipboardPlus, label: "Report Cases" },
-    { href: "/analytics", icon: BarChart, label: "Analytics" },
+    { href: "/admin-console", icon: BarChart, label: "Admin Console" },
   ]
 };
 
