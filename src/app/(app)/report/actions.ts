@@ -92,6 +92,6 @@ export async function reportBreedingSite(
     };
   } catch (e) {
     console.error(e);
-    return { error: 'Failed to process report. AI service may be unavailable.' };
+    return { error: 'Failed to process report. The AI service is unavailable.' };
   }
 }

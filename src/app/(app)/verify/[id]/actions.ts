@@ -3,7 +3,6 @@
 import { z } from 'zod';
 import { verifyBreedingSiteNeutralization } from '@/ai/flows/verify-breeding-site-neutralization';
 import { getReportById } from '@/lib/data';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const verifySchema = z.object({
   reportId: z.string(),
@@ -29,26 +28,32 @@ function bufferToDataURI(buffer: Buffer, mimeType: string): string {
     return `data:${mimeType};base64,${buffer.toString('base64')}`;
 }
 
-// In-memory version of converting image URL to data URI for demo purposes.
-// In a real app, you would fetch from a URL or cloud storage.
 async function imageUrlToDataUri(imageUrl: string): Promise<string> {
-  const isPicsumUrl = imageUrl.startsWith('https://picsum.photos');
-  if (isPicsumUrl) {
+  // If it's already a data URI, just return it.
+  if (imageUrl.startsWith('data:image')) {
+    return imageUrl;
+  }
+
+  // If it is a web URL, fetch and convert it.
+  if (imageUrl.startsWith('http')) {
     try {
       const response = await fetch(imageUrl);
-      if (!response.ok) throw new Error('Failed to fetch image');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+      }
       const contentType = response.headers.get('content-type') || 'image/jpeg';
       const buffer = Buffer.from(await response.arrayBuffer());
       return bufferToDataURI(buffer, contentType);
     } catch (error) {
       console.error("Failed to convert image URL to data URI", error);
-      // Fallback for demo if fetch fails
+      // Return a placeholder pixel to avoid breaking the AI call if fetch fails.
       return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
     }
   }
-  // For other URLs, you'd have a similar fetch logic.
-  // This is a simplified placeholder.
-  return imageUrl;
+
+  // Fallback for any other case
+  console.warn(`Could not process imageUrl: ${imageUrl}`);
+  return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 }
 
 
@@ -88,10 +93,8 @@ export async function verifyNeutralization(
         return { error: 'No after image provided.' };
     }
     
-    // Get the 'before' image data URI.
-    // For this demo, we find a placeholder and use its URL. In a real app, this would come from `report.imageUrl`.
-    const beforeImagePlaceholder = PlaceHolderImages.find(img => img.imageUrl === report.imageUrl);
-    const beforePhotoDataUri = beforeImagePlaceholder ? await imageUrlToDataUri(beforeImagePlaceholder.imageUrl) : report.imageUrl;
+    // Convert the 'before' image URL to a data URI.
+    const beforePhotoDataUri = await imageUrlToDataUri(report.imageUrl);
 
     const result = await verifyBreedingSiteNeutralization({
         beforePhotoDataUri,
@@ -110,6 +113,6 @@ export async function verifyNeutralization(
     };
   } catch (e) {
     console.error(e);
-    return { error: 'AI verification failed. The service may be unavailable.' };
+    return { error: 'AI verification failed. The service is unavailable.' };
   }
 }
