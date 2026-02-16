@@ -102,7 +102,11 @@ export default function LoginPage() {
         }
         router.push('/dashboard');
     } catch (error: any) {
-        setError(error.message);
+        if (error.code === 'auth/operation-not-allowed') {
+            setError('Google Sign-In is not enabled. Please contact an administrator.');
+        } else {
+            setError(error.message || "An error occurred during Google Sign-In.");
+        }
     } finally {
         setIsLoading(false);
     }
@@ -194,3 +198,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

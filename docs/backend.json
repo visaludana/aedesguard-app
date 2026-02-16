@@ -26,6 +26,14 @@
         "role": {
           "type": "string",
           "description": "The role of the user within the application (e.g., 'Citizen', 'PHI')."
+        },
+        "idNumber": {
+          "type": "string",
+          "description": "Optional national ID number for the user."
+        },
+        "mobileNumber": {
+          "type": "string",
+          "description": "Optional mobile phone number for the user."
         }
       },
       "required": [
@@ -222,7 +230,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "google.com"
     ]
   },
   "firestore": {
@@ -305,3 +314,4 @@
     "reasoning": "The Firestore structure prioritizes Authorization Independence and Structural Segregation to simplify security rules and ensure scalability.\n\n1.  \"userProfiles/{userId}\": This collection stores individual user profiles. Access is strictly path-based: `request.auth.uid` must match `{userId}`. This ensures private user data is isolated. Each document also contains the `role` field for general categorization, but critical authorization (e.g., PHI status) is handled by a dedicated role collection.\n2.  \"roles_phi/{userId}\": This collection implements Database Access Control (DBAC) for Public Health Inspectors (PHIs). The *existence* of a document at `/roles_phi/$(request.auth.uid)` grants PHI privileges. This adheres to the 'Existence over Content' principle, eliminating the need for `get()` calls on `UserProfile` documents to check roles, making authorization atomic and highly performant for rules.\n3.  \"surveillanceSamples/{sampleId}\": This is the core collection for all mosquito larvae surveillance samples. Each document explicitly includes an `uploaderId` field, which is a direct denormalization of the sample's owner. This design achieves **Authorization Independence** by allowing security rules to check `resource.data.uploaderId == request.auth.uid` without `get()` calls to parent collections or user profiles. This collection also supports the **QAPs (Query as a Proxy)** principle:\n    *   For the global heatmap, read access can be granted to all authenticated users for specific fields (`latitude`, `longitude`, `riskLevel`, `isNeutralized`), enabling efficient listing without filtering in rules.\n    *   Users can list *only their own* samples efficiently by querying `where('uploaderId', '==', request.auth.uid)`, which is a secure and performant pattern.\n    *   PHIs (identified via `roles_phi`) can list all samples for broader surveillance.\n4.  \"phiAlerts/{alertId}\": This collection stores automated alerts for PHIs. The `assignedToUserId` field is denormalized within each alert document, allowing PHIs to access alerts assigned to them directly. All PHIs can read this collection, adhering to **Structural Segregation** as all alerts have a similar security posture (PHI-only access). Rule checks will use the `roles_phi` collection for PHI verification.\n5.  \"neutralizationVerifications/{verificationId}\": This collection records submissions for confirming neutralized breeding sites. The `verifierId` is denormalized into each document, enabling **Authorization Independence** for users to view their own verification submissions. PHIs (via `roles_phi` check) also have read access for oversight. This collection is crucial for the \"Search & Destroy\" feature and points system, with updates handled via Cloud Functions.\n\nThis structure allows for robust and easily debuggable security rules, minimizing complex `get()` calls and ensuring that all `list` operations are securely queryable. The denormalization of ownership (`uploaderId`, `verifierId`) and role-based access (`roles_phi`) are key to achieving high security and scalability."
   }
 }
+    
