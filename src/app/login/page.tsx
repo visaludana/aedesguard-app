@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFirebase, useUser, errorEmitter } from '@/firebase';
 import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
@@ -36,12 +36,6 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (!isUserLoading && user) {
-      router.push('/dashboard');
-    }
-  }, [user, isUserLoading, router]);
-
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -55,7 +49,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // The useEffect will handle the redirect on user state change
+      router.push('/dashboard');
     } catch (err: any) {
       switch (err.code) {
         case 'auth/user-not-found':
@@ -92,6 +86,7 @@ export default function LoginPage() {
                 id: user.uid,
                 displayName: user.displayName || 'Google User',
                 email: user.email!,
+                photoURL: user.photoURL || '',
                 points: 0,
                 lastActivityAt: new Date().toISOString(),
             };
@@ -105,16 +100,15 @@ export default function LoginPage() {
                 throw new Error("Could not create user profile after Google sign-in.");
             });
         }
-        // Redirect is handled by useEffect
+        router.push('/dashboard');
     } catch (error: any) {
-        // Handle specific errors if necessary
         setError(error.message);
     } finally {
         setIsLoading(false);
     }
   };
   
-  if (isUserLoading || (!isUserLoading && user)) {
+  if (isUserLoading || user) {
     return (
         <div className="flex min-h-screen items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin" />
@@ -176,7 +170,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+            <Button variant="outline" type="button" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
                 Sign in with Google
             </Button>
@@ -200,5 +194,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

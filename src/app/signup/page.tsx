@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFirebase, useUser, errorEmitter } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
@@ -37,12 +37,6 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (!isUserLoading && user) {
-      router.push('/dashboard');
-    }
-  }, [user, isUserLoading, router]);
-
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -66,6 +60,7 @@ export default function SignupPage() {
         id: newUser.uid,
         displayName,
         email: newUser.email!,
+        photoURL: newUser.photoURL || '',
         points: 0,
         lastActivityAt: new Date().toISOString(),
       };
@@ -82,6 +77,8 @@ export default function SignupPage() {
             errorEmitter.emit('permission-error', contextualError);
             throw new Error("Could not create user profile. You may not have permissions.");
         });
+      
+      router.push('/dashboard');
 
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {
@@ -113,6 +110,7 @@ export default function SignupPage() {
                 id: user.uid,
                 displayName: user.displayName || 'Google User',
                 email: user.email!,
+                photoURL: user.photoURL || '',
                 points: 0,
                 lastActivityAt: new Date().toISOString(),
             };
@@ -126,6 +124,7 @@ export default function SignupPage() {
                 throw new Error("Could not create user profile after Google sign-in.");
             });
         }
+        router.push('/dashboard');
     } catch (error: any) {
         setError(error.message);
     } finally {
@@ -133,7 +132,7 @@ export default function SignupPage() {
     }
   };
   
-  if (isUserLoading || (!isUserLoading && user)) {
+  if (isUserLoading || user) {
     return (
         <div className="flex min-h-screen items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin" />
@@ -207,7 +206,7 @@ export default function SignupPage() {
               </div>
             </div>
 
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+            <Button variant="outline" type="button" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
                 Sign up with Google
             </Button>
@@ -232,5 +231,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
-    
