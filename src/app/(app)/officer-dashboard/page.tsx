@@ -1,7 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, ClipboardPlus } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function OfficerDashboardPage() {
   return (
@@ -14,24 +15,36 @@ export default function OfficerDashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Button asChild size="lg" className="h-20 text-base py-2">
-            <Link href="/health-report" className="flex items-center justify-start text-left">
-              <ClipboardPlus className="mr-4 h-8 w-8" />
-              <div>
-                <p className="font-semibold text-lg">Report Cases & Deaths</p>
-                <p className="font-normal text-sm text-primary-foreground/80">Submit daily statistics for your district.</p>
-              </div>
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="h-20 text-base py-2">
-            <Link href="/admin-console" className="flex items-center justify-start text-left">
-              <BarChart className="mr-4 h-8 w-8" />
-              <div>
-                <p className="font-semibold text-lg">View Health Analytics</p>
-                <p className="font-normal text-sm text-muted-foreground">Analyze trends across all districts.</p>
-              </div>
-            </Link>
-          </Button>
+          <Link
+            href="/health-report"
+            className={cn(
+              buttonVariants({ variant: 'default' }),
+              'h-20 text-base py-2 flex items-center justify-start text-left w-full'
+            )}
+          >
+            <ClipboardPlus className="mr-4 h-8 w-8" />
+            <div>
+              <p className="font-semibold text-lg">Report Cases & Deaths</p>
+              <p className="font-normal text-sm text-primary-foreground/80">
+                Submit daily statistics for your district.
+              </p>
+            </div>
+          </Link>
+          <Link
+            href="/admin-console"
+            className={cn(
+              buttonVariants({ variant: 'outline' }),
+              'h-20 text-base py-2 flex items-center justify-start text-left w-full'
+            )}
+          >
+            <BarChart className="mr-4 h-8 w-8" />
+            <div>
+              <p className="font-semibold text-lg">View Health Analytics</p>
+              <p className="font-normal text-sm text-muted-foreground">
+                Analyze trends across all districts.
+              </p>
+            </div>
+          </Link>
         </CardContent>
       </Card>
     </div>
