@@ -15,6 +15,7 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { LogOut } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { signOut } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
 
 type AppHeaderProps = {
   title: string;
@@ -22,6 +23,7 @@ type AppHeaderProps = {
 
 export function AppHeader({ title }: AppHeaderProps) {
   const { auth } = useFirebase();
+  const { toast } = useToast();
   const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar-1');
 
   const handleLogout = () => {
@@ -49,8 +51,8 @@ export function AppHeader({ title }: AppHeaderProps) {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => toast({ title: 'Coming Soon!', description: 'The settings page is under development.'})}>Settings</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => toast({ title: 'Coming Soon!', description: 'The support page is under development.'})}>Support</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
