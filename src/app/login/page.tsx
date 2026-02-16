@@ -14,6 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import { AedesGuardLogo } from '@/components/icons';
+import { useRouter } from 'next/navigation';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24px" height="24px" {...props}>
@@ -28,11 +29,13 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export default function LoginPage() {
   const { auth, firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
+  const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -47,7 +50,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      window.location.href = '/dashboard';
+      router.push('/dashboard');
     } catch (err: any) {
       switch (err.code) {
         case 'auth/user-not-found':
@@ -69,7 +72,8 @@ export default function LoginPage() {
         setError("Authentication service is not available.");
         return;
     }
-    setIsLoading(true);
+    setError(null);
+    setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
@@ -97,15 +101,17 @@ export default function LoginPage() {
                 throw new Error("Could not create user profile after Google sign-in.");
             });
         }
-        window.location.href = '/dashboard';
+        router.push('/dashboard');
     } catch (error: any) {
-        if (error.code === 'auth/operation-not-allowed') {
+        if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+          // Do nothing, user cancelled.
+        } else if (error.code === 'auth/operation-not-allowed') {
             setError('Google Sign-In is not enabled. Please contact an administrator.');
         } else {
             setError(error.message || "An error occurred during Google Sign-In.");
         }
     } finally {
-        setIsLoading(false);
+        setIsGoogleLoading(false);
     }
   };
   
@@ -155,7 +161,7 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" disabled={isLoading} className="w-full">
+            <Button type="submit" disabled={isLoading || isGoogleLoading} className="w-full">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>
@@ -171,8 +177,8 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button variant="outline" type="button" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
+            <Button variant="outline" type="button" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
+                {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
                 Sign in with Google
             </Button>
 
