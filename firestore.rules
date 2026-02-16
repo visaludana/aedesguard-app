@@ -53,10 +53,13 @@ service cloud.firestore {
 
     /**
      * Checks if the authenticated user is a Public Health Inspector (PHI)
-     * by verifying the existence of a role document in the roles_phi collection.
+     * by verifying the existence of a role document in the roles_phi collection
+     * or if they are the designated admin user.
      */
     function isPHI() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_phi/$(request.auth.uid));
+      return isSignedIn() && 
+             (exists(/databases/$(database)/documents/roles_phi/$(request.auth.uid)) || 
+              request.auth.token.email == 'admin@aedesguard.com');
     }
 
     /**
@@ -166,5 +169,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
