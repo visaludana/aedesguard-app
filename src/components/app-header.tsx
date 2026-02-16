@@ -12,17 +12,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { LogOut } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 
 type AppHeaderProps = {
   title: string;
 };
 
 export function AppHeader({ title }: AppHeaderProps) {
-  const { auth } = useFirebase();
+  const { auth, user } = useFirebase();
   const { toast } = useToast();
   const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar-1');
 
@@ -39,27 +40,36 @@ export function AppHeader({ title }: AppHeaderProps) {
       </div>
       <h1 className="text-lg font-semibold md:text-xl">{title}</h1>
       <div className="ml-auto flex items-center gap-4">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-              <Avatar className="h-10 w-10 border-2 border-primary">
-                <AvatarImage src={userAvatar?.imageUrl} alt="User Avatar" data-ai-hint={userAvatar?.imageHint} />
-                <AvatarFallback>PHI</AvatarFallback>
-              </Avatar>
+        { user ? (
+            <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Avatar className="h-10 w-10 border-2 border-primary">
+                    <AvatarImage src={user.photoURL || userAvatar?.imageUrl} alt={user.displayName || "User Avatar"} data-ai-hint={userAvatar?.imageHint} />
+                    <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                </Avatar>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{user.displayName || user.email}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => toast({ title: 'Coming Soon!', description: 'The settings page is under development.'})}>Settings</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast({ title: 'Coming Soon!', description: 'The support page is under development.'})}>Support</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+            </DropdownMenu>
+        ) : (
+            <Button asChild>
+                <Link href="/login">
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Sign In
+                </Link>
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => toast({ title: 'Coming Soon!', description: 'The settings page is under development.'})}>Settings</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast({ title: 'Coming Soon!', description: 'The support page is under development.'})}>Support</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        )}
       </div>
     </header>
   );

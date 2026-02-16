@@ -42,4 +42,10 @@ export type DistrictHealthReport = {
   reportedAt: string; // ISO DateTime
 };
 
-    
+export type UserProfile = {
+  id: string;
+  points: number;
+  displayName: string;
+  email: string;
+  lastActivityAt: string;
+};

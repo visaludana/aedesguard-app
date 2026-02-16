@@ -13,8 +13,11 @@ export default function LandingPage() {
           <span className="font-semibold text-lg">AedesGuard AI</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
+          <Button asChild variant="ghost">
+            <Link href="/login">Sign In</Link>
+          </Button>
           <Button asChild>
-            <Link href="/dashboard">Launch App</Link>
+            <Link href="/signup">Get Started</Link>
           </Button>
         </nav>
       </header>
@@ -33,8 +36,11 @@ export default function LandingPage() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Button asChild size="lg">
-                    <Link href="/dashboard">Go to Dashboard</Link>
+                   <Button asChild size="lg">
+                    <Link href="/signup">Get Started Free</Link>
+                  </Button>
+                   <Button asChild size="lg" variant="outline">
+                    <Link href="/dashboard">View Public Dashboard</Link>
                   </Button>
                 </div>
               </div>
