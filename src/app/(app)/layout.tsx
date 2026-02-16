@@ -14,42 +14,9 @@ import {
 import { cn } from "@/lib/utils";
 import { BadgeCheck, LayoutDashboard, ShieldPlus, ClipboardPlus, BarChart, User as UserIcon } from "lucide-react";
 import { usePathname } from 'next/navigation';
-import { ReactNode, useState, useEffect, useMemo } from "react";
-import { useFirebase } from "@/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { ReactNode, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-
-type UserRole = 'loading' | 'public' | 'user' | 'officer';
-
-function useUserRole(): UserRole {
-  const { user, isUserLoading, firestore } = useFirebase();
-  const [role, setRole] = useState<UserRole>('loading');
-
-  useEffect(() => {
-    if (isUserLoading) {
-      setRole('loading');
-      return;
-    }
-
-    if (!user) {
-      setRole('public');
-      return;
-    }
-
-    if (firestore) {
-      const phiDocRef = doc(firestore, 'roles_phi', user.uid);
-      getDoc(phiDocRef).then(docSnap => {
-        setRole(docSnap.exists() ? 'officer' : 'user');
-      }).catch(() => {
-        setRole('user'); // Fallback on error
-      });
-    } else {
-      setRole('user'); // Fallback if firestore not ready
-    }
-  }, [user, isUserLoading, firestore]);
-
-  return role;
-}
+import { useUserRole } from "@/hooks/use-user-role";
 
 const allNavItems = {
   public: [

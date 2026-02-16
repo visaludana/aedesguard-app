@@ -11,13 +11,17 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUserRole } from '@/hooks/use-user-role';
 
 export default function AdminConsolePage() {
   const { firestore } = useFirebase();
+  const role = useUserRole();
+
+  const canFetchData = role === 'officer';
 
   const healthReportsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'district_health_reports'), orderBy('reportedDate', 'desc')) : null),
-    [firestore]
+    () => (firestore && canFetchData ? query(collection(firestore, 'district_health_reports'), orderBy('reportedDate', 'desc')) : null),
+    [firestore, canFetchData]
   );
 
   const { data: reports, isLoading, error } = useCollection<DistrictHealthReport>(healthReportsQuery);
@@ -52,7 +56,7 @@ export default function AdminConsolePage() {
     };
   }, [reports]);
   
-  if (error) {
+  if (role !== 'officer' || error) {
     return (
         <Alert variant="destructive" className="max-w-2xl mx-auto">
             <ShieldAlert className="h-4 w-4" />
@@ -63,8 +67,8 @@ export default function AdminConsolePage() {
         </Alert>
     );
   }
-
-  if (isLoading) {
+  
+  if (isLoading || role === 'loading') {
     return (
         <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
