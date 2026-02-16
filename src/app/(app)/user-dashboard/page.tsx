@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ShieldPlus } from 'lucide-react';
+import { MapPin, ShieldPlus } from 'lucide-react';
+import ClientMap from '@/components/client-map';
 
 function getRiskBadgeVariant(riskLevel: number): 'destructive' | 'secondary' | 'default' {
   if (riskLevel > 8) return 'destructive';
@@ -29,12 +30,7 @@ export default async function UserDashboardPage() {
 
   return (
     <div className="space-y-6">
-        <Card>
-            <CardHeader>
-                <CardTitle>Welcome!</CardTitle>
-                <CardDescription>Thank you for contributing to public health. Here are the surveillance reports you have submitted.</CardDescription>
-            </CardHeader>
-        </Card>
+        <ClientMap reports={userReports} />
         <Card>
             <CardHeader className='flex-row items-center justify-between'>
                 <div>
@@ -52,23 +48,30 @@ export default async function UserDashboardPage() {
                             <TableHeader>
                             <TableRow>
                                 <TableHead>Location</TableHead>
-                                <TableHead>Genus</TableHead>
                                 <TableHead>Risk Level</TableHead>
                                 <TableHead>Reported On</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Action</TableHead>
                             </TableRow>
                             </TableHeader>
                             <TableBody>
                             {userReports.map((report: SurveillanceReport) => (
                                 <TableRow key={report.id}>
                                 <TableCell className="font-medium">{report.locationName}</TableCell>
-                                <TableCell>{report.larvaeGenus}</TableCell>
                                 <TableCell>
                                     <Badge variant={getRiskBadgeVariant(report.riskLevel)}>{report.riskLevel}/10</Badge>
                                 </TableCell>
                                 <TableCell>{format(new Date(report.reportedAt), 'PPP')}</TableCell>
                                 <TableCell>
                                     <StatusBadge isNeutralized={report.isNeutralized} />
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={`https://www.google.com/maps/dir/?api=1&destination=${report.location.lat},${report.location.lng}`} target="_blank" rel="noopener noreferrer">
+                                            <MapPin className="mr-2 h-4 w-4" />
+                                            Get Directions
+                                        </Link>
+                                    </Button>
                                 </TableCell>
                                 </TableRow>
                             ))}
