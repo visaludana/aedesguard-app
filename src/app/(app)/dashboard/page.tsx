@@ -82,7 +82,10 @@ export default async function DashboardPage() {
             <ClientMap reports={reports} />
         </TabsContent>
         <TabsContent value="risk" className="mt-4">
-            <DistrictRiskMap initialDistrictsWithRisk={cachedDistrictRisks} />
+            <DistrictRiskMap 
+              initialDistrictsWithRisk={cachedDistrictRisks} 
+              openWeatherApiKey={process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}
+            />
         </TabsContent>
       </Tabs>
     </div>
