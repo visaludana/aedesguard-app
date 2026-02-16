@@ -13,12 +13,13 @@ import { Loader2, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import { AedesGuardLogo } from '@/components/icons';
 
+const ADMIN_EMAIL = 'admin@aedesguard.com';
+
 export default function AdminLoginPage() {
   const { auth } = useFirebase();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +44,7 @@ export default function AdminLoginPage() {
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, ADMIN_EMAIL, password);
       // The useEffect will handle the redirect on user state change.
     } catch (err: any) {
       switch (err.code) {
@@ -80,21 +81,9 @@ export default function AdminLoginPage() {
         <form onSubmit={handleLogin}>
           <CardHeader>
             <CardTitle>Admin Console Login</CardTitle>
-            <CardDescription>Enter your administrator credentials.</CardDescription>
+            <CardDescription>Enter your administrator password.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="admin@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-              />
-            </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
