@@ -10,32 +10,87 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarProvider,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { BadgeCheck, LayoutDashboard, ShieldPlus, ClipboardPlus, BarChart } from "lucide-react";
+import { BadgeCheck, LayoutDashboard, ShieldPlus, ClipboardPlus, BarChart, User as UserIcon } from "lucide-react";
 import { usePathname } from 'next/navigation';
-import type { ReactNode } from "react";
-import { FirebaseClientProvider } from "@/firebase/client-provider";
+import { ReactNode, useState, useEffect, useMemo } from "react";
+import { useFirebase } from "@/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/report", icon: ShieldPlus, label: "Report Site" },
-  { href: "/verify", icon: BadgeCheck, label: "Verify Sites" },
-  { href: "/health-report", icon: ClipboardPlus, label: "Report Cases" },
-  { href: "/analytics", icon: BarChart, label: "Analytics" },
-];
+type UserRole = 'loading' | 'public' | 'user' | 'officer';
+
+function useUserRole(): UserRole {
+  const { user, isUserLoading, firestore } = useFirebase();
+  const [role, setRole] = useState<UserRole>('loading');
+
+  useEffect(() => {
+    if (isUserLoading) {
+      setRole('loading');
+      return;
+    }
+
+    if (!user) {
+      setRole('public');
+      return;
+    }
+
+    if (firestore) {
+      const phiDocRef = doc(firestore, 'roles_phi', user.uid);
+      getDoc(phiDocRef).then(docSnap => {
+        setRole(docSnap.exists() ? 'officer' : 'user');
+      }).catch(() => {
+        setRole('user'); // Fallback on error
+      });
+    } else {
+      setRole('user'); // Fallback if firestore not ready
+    }
+  }, [user, isUserLoading, firestore]);
+
+  return role;
+}
+
+const allNavItems = {
+  public: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Public Dashboard" },
+  ],
+  user: [
+    { href: "/user-dashboard", icon: UserIcon, label: "My Dashboard" },
+    { href: "/report", icon: ShieldPlus, label: "Report Site" },
+    { href: "/verify", icon: BadgeCheck, label: "Verify Sites" },
+  ],
+  officer: [
+    { href: "/officer-dashboard", icon: LayoutDashboard, label: "Officer Dashboard" },
+    { href: "/report", icon: ShieldPlus, label: "Report Site" },
+    { href: "/verify", icon: BadgeCheck, label: "Verify Sites" },
+    { href: "/health-report", icon: ClipboardPlus, label: "Report Cases" },
+    { href: "/analytics", icon: BarChart, label: "Analytics" },
+  ]
+};
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const role = useUserRole();
+
+  const navItems = useMemo(() => {
+    if (role === 'officer') return allNavItems.officer;
+    if (role === 'user') return allNavItems.user;
+    return allNavItems.public;
+  }, [role]);
 
   const getPageTitle = () => {
-    const currentItem = navItems.find(item => pathname.startsWith(item.href));
-    return currentItem ? currentItem.label : "Dashboard";
+    const allItems = [...allNavItems.officer, ...allNavItems.user, ...allNavItems.public];
+    const currentItem = allItems.find(item => pathname.startsWith(item.href));
+    
+    if (pathname.includes('-dashboard') || pathname === '/dashboard') {
+      const roleTitle = role === 'officer' ? 'Officer' : role === 'user' ? 'User' : 'Public';
+      return `${roleTitle} Dashboard`;
+    }
+    return currentItem ? currentItem.label : "AedesGuard";
   };
   
   return (
-    <FirebaseClientProvider>
       <SidebarProvider>
         <div className="flex min-h-screen">
           <Sidebar className="bg-card" collapsible="icon">
@@ -52,20 +107,28 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </SidebarHeader>
             <SidebarContent>
               <SidebarMenu>
-                {navItems.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith(item.href)}
-                      tooltip={item.label}
-                    >
-                      <a href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {role === 'loading' ? (
+                  <div className="p-2 space-y-2">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                ) : (
+                  navItems.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname.startsWith(item.href)}
+                        tooltip={item.label}
+                      >
+                        <a href={item.href}>
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </a>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))
+                )}
               </SidebarMenu>
             </SidebarContent>
           </Sidebar>
@@ -78,8 +141,5 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </main>
         </div>
       </SidebarProvider>
-    </FirebaseClientProvider>
   );
 }
-
-    
