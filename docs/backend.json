@@ -213,6 +213,53 @@
         "assessment",
         "updatedAt"
       ]
+    },
+    "DistrictHealthReport": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DistrictHealthReport",
+      "description": "Stores daily health statistics for a district, including new cases and deaths, reported by authorized health officers.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the health report."
+        },
+        "districtName": {
+          "type": "string",
+          "description": "The name of the district for which the report is filed."
+        },
+        "reportedDate": {
+          "type": "string",
+          "description": "The date for which the statistics are being reported.",
+          "format": "date"
+        },
+        "cases": {
+          "type": "number",
+          "description": "Number of new cases reported for the date."
+        },
+        "deaths": {
+          "type": "number",
+          "description": "Number of deaths reported for the date."
+        },
+        "reportedById": {
+          "type": "string",
+          "description": "The UID of the authenticated officer who submitted the report."
+        },
+        "reportedAt": {
+          "type": "string",
+          "description": "Timestamp when the report was submitted.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "districtName",
+        "reportedDate",
+        "cases",
+        "deaths",
+        "reportedById",
+        "reportedAt"
+      ]
     }
   },
   "auth": {
@@ -315,6 +362,22 @@
             {
               "name": "districtName",
               "description": "The name of the Sri Lankan district."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/district_health_reports/{reportId}",
+        "definition": {
+          "entityName": "DistrictHealthReport",
+          "schema": {
+            "$ref": "#/backend/entities/DistrictHealthReport"
+          },
+          "description": "Stores daily health statistics (cases, deaths) per district. Writable only by PHIs, and readable by PHIs for analytics.",
+          "params": [
+            {
+              "name": "reportId",
+              "description": "The unique ID of the health report."
             }
           ]
         }

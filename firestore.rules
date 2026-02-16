@@ -154,6 +154,16 @@ service cloud.firestore {
         allow read: if true;
         allow write: if false;
     }
+
+    /**
+     * @description Daily health statistics (cases, deaths) per district.
+     * @path /district_health_reports/{reportId}
+     * @allow (read, write) Authenticated PHIs can read and write health reports.
+     * @principle Restricts sensitive health data access to authorized personnel.
+     */
+    match /district_health_reports/{reportId} {
+      allow read, write: if isPHI();
+    }
   }
 }
 

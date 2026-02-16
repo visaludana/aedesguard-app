@@ -13,7 +13,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { BadgeCheck, LayoutDashboard, ShieldPlus } from "lucide-react";
+import { BadgeCheck, LayoutDashboard, ShieldPlus, ClipboardPlus, BarChart } from "lucide-react";
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from "react";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
@@ -22,6 +22,8 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/report", icon: ShieldPlus, label: "Report Site" },
   { href: "/verify", icon: BadgeCheck, label: "Verify Sites" },
+  { href: "/health-report", icon: ClipboardPlus, label: "Report Cases" },
+  { href: "/analytics", icon: BarChart, label: "Analytics" },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {

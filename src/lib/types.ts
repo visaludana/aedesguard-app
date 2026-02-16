@@ -31,3 +31,15 @@ export type DistrictRisk = {
   humidity: number;
   rainfall: number;
 };
+
+export type DistrictHealthReport = {
+  id?: string; // id is optional on creation
+  districtName: string;
+  reportedDate: string; // ISO Date (YYYY-MM-DD)
+  cases: number;
+  deaths: number;
+  reportedById: string;
+  reportedAt: string; // ISO DateTime
+};
+
+    
