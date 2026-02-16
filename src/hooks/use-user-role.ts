@@ -21,6 +21,12 @@ export function useUserRole(): UserRole {
       return;
     }
 
+    // Special check for the hardcoded admin email
+    if (user.email === 'admin@aedesguard.com') {
+      setRole('officer');
+      return;
+    }
+
     if (firestore) {
       const phiDocRef = doc(firestore, 'roles_phi', user.uid);
       getDoc(phiDocRef).then(docSnap => {
