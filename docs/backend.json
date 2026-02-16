@@ -4,399 +4,304 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
-      "description": "Stores non-sensitive user-specific data, such as earned points and display information, linked to an external authentication system.",
+      "description": "Represents a user of the AedesGuard AI application, tracking their activities and points. Authentication details are managed externally.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the UserProfile entity, matching the external authentication system's user ID."
-        },
-        "points": {
-          "type": "number",
-          "description": "Total points earned by the user through verified actions (e.g., 'Search & Destroy')."
+          "description": "Unique identifier for the UserProfile entity, linked to an external authentication system's user ID."
         },
         "displayName": {
           "type": "string",
-          "description": "User's public display name."
+          "description": "The public display name of the user."
+        },
+        "totalPoints": {
+          "type": "number",
+          "description": "The cumulative points earned by the user for participating in 'Search & Destroy' activities."
         },
         "email": {
           "type": "string",
-          "description": "User's email address.",
+          "description": "Optional email address of the user for communication.",
           "format": "email"
         },
-        "lastActivityAt": {
+        "role": {
           "type": "string",
-          "description": "Timestamp of the user's last recorded activity in the app.",
-          "format": "date-time"
-        },
-        "photoURL": {
-          "type": "string",
-          "description": "URL of the user's profile picture.",
-          "format": "uri"
-        },
-        "idNumber": {
-          "type": "string",
-          "description": "User's national identification number (optional)."
-        },
-        "mobileNumber": {
-          "type": "string",
-          "description": "User's mobile phone number (optional)."
+          "description": "The role of the user within the application (e.g., 'Citizen', 'PHI')."
         }
       },
       "required": [
         "id",
-        "points",
-        "displayName"
+        "displayName",
+        "totalPoints",
+        "role"
       ]
     },
-    "SurveillanceReport": {
+    "SurveillanceSample": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "SurveillanceReport",
+      "title": "SurveillanceSample",
       "type": "object",
-      "description": "Represents a single entomological surveillance submission, including AI classification, habitat analysis, location, and calculated risk level.",
+      "description": "Stores details of a mosquito larvae surveillance sample, including classification results, location, and AI-generated advice.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the SurveillanceReport entity."
+          "description": "Unique identifier for the SurveillanceSample entity."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp when the surveillance sample data was collected or uploaded.",
+          "format": "date-time"
         },
         "latitude": {
           "type": "number",
-          "description": "Geographical latitude of the surveillance location."
+          "description": "Latitude coordinate of the surveillance sample's location."
         },
         "longitude": {
           "type": "number",
-          "description": "Geographical longitude of the surveillance location."
+          "description": "Longitude coordinate of the surveillance sample's location."
+        },
+        "originalImageUrl": {
+          "type": "string",
+          "description": "URL of the original image uploaded by the user, stored in Firebase Storage.",
+          "format": "uri"
+        },
+        "processedImageUrl": {
+          "type": "string",
+          "description": "URL of the resized and normalized image sent to the AI model for classification.",
+          "format": "uri"
         },
         "speciesType": {
           "type": "string",
-          "description": "Identified mosquito larvae genus (e.g., 'Aedes aegypti' or 'Culex')."
+          "description": "Classification result of the mosquito larvae species (e.g., 'Aedes aegypti', 'Culex', 'No Larvae Detected')."
         },
-        "confidenceInterval": {
+        "confidenceScore": {
           "type": "number",
-          "description": "Confidence score from the AI classification model (0.0 to 1.0)."
+          "description": "The AI model's confidence score (0.0 to 1.0) for the species classification."
         },
         "habitatDescription": {
           "type": "string",
-          "description": "Generative AI's analysis and description of the surrounding habitat (e.g., 'stagnant water in a discarded tire')."
+          "description": "AI-generated description and analysis of the breeding site's surroundings (e.g., 'stagnant water in a discarded tire')."
         },
         "riskLevel": {
           "type": "number",
-          "description": "Calculated risk level of the breeding site (1-10)."
+          "description": "Calculated risk level (1-10) based on species, habitat, and location, indicating potential dengue transmission risk."
         },
         "isNeutralized": {
           "type": "boolean",
-          "description": "Indicates if the breeding site has been confirmed as neutralized."
+          "description": "Indicates whether this specific breeding site has been confirmed as neutralized/cleaned."
         },
-        "submittedAt": {
+        "reportEnglish": {
           "type": "string",
-          "description": "Timestamp when the surveillance report was submitted.",
-          "format": "date-time"
+          "description": "AI-generated risk report and safety advice in English."
         },
-        "submittedById": {
+        "reportSinhala": {
           "type": "string",
-          "description": "Reference to the UserProfile who submitted this report. (Relationship: UserProfile 1:N SurveillanceReport)"
+          "description": "AI-generated risk report and safety advice in Sinhala."
         },
-        "imageUrl": {
+        "reportTamil": {
           "type": "string",
-          "description": "URL to the initial image of the breeding site uploaded by the user.",
-          "format": "uri"
+          "description": "AI-generated risk report and safety advice in Tamil."
         },
-        "neutralizationImageUrl": {
+        "uploaderId": {
           "type": "string",
-          "description": "URL to the image confirming the neutralization of the breeding site, if applicable.",
-          "format": "uri"
-        },
-        "riskReportSinhala": {
-          "type": "string",
-          "description": "Generated risk report and safety advice in Sinhala."
-        },
-        "riskReportTamil": {
-          "type": "string",
-          "description": "Generated risk report and safety advice in Tamil."
-        },
-        "riskReportEnglish": {
-          "type": "string",
-          "description": "Generated risk report and safety advice in English."
+          "description": "Reference to the UserProfile who uploaded this surveillance sample. (Relationship: UserProfile 1:N SurveillanceSample)"
         }
       },
       "required": [
         "id",
+        "timestamp",
         "latitude",
         "longitude",
+        "originalImageUrl",
         "speciesType",
-        "confidenceInterval",
+        "confidenceScore",
         "habitatDescription",
         "riskLevel",
         "isNeutralized",
-        "submittedAt",
-        "submittedById",
-        "imageUrl",
-        "riskReportEnglish"
+        "uploaderId"
       ]
     },
     "PHIAlert": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PHIAlert",
       "type": "object",
-      "description": "Represents an automated alert generated for Public Health Inspectors (PHIs) when high-risk breeding sites are detected in high-density areas.",
+      "description": "Represents an automated alert generated for Public Health Inspectors (PHIs) when a high-risk breeding site is detected.",
       "properties": {
         "id": {
           "type": "string",
           "description": "Unique identifier for the PHIAlert entity."
         },
-        "alertGeneratedAt": {
+        "surveillanceSampleId": {
           "type": "string",
-          "description": "Timestamp when the alert was generated.",
+          "description": "Reference to the SurveillanceSample that triggered this alert. (Relationship: SurveillanceSample 1:1 PHIAlert)"
+        },
+        "alertTimestamp": {
+          "type": "string",
+          "description": "Timestamp when the automated alert was generated.",
           "format": "date-time"
-        },
-        "surveillanceReportId": {
-          "type": "string",
-          "description": "Reference to the SurveillanceReport that triggered this alert. (Relationship: SurveillanceReport 1:N PHIAlert)"
-        },
-        "locationLatitude": {
-          "type": "number",
-          "description": "Geographical latitude of the alert area, for quick referencing."
-        },
-        "locationLongitude": {
-          "type": "number",
-          "description": "Geographical longitude of the alert area, for quick referencing."
         },
         "riskLevel": {
           "type": "number",
-          "description": "The risk level of the surveillance report that triggered this alert."
-        },
-        "description": {
-          "type": "string",
-          "description": "Detailed description of the alert, including context about the high-density area."
+          "description": "The risk level from the associated surveillance sample that triggered this alert."
         },
         "isResolved": {
           "type": "boolean",
-          "description": "Indicates if the Public Health Inspector has addressed this alert."
+          "description": "Indicates whether this alert has been reviewed and addressed by a Public Health Inspector (PHI)."
+        },
+        "assignedToUserId": {
+          "type": "string",
+          "description": "Optional reference to the UserProfile (PHI) to whom this alert is assigned for investigation. (Relationship: UserProfile 1:N PHIAlert)"
+        },
+        "messageEnglish": {
+          "type": "string",
+          "description": "Detailed alert message in English, generated for PHIs."
+        },
+        "messageSinhala": {
+          "type": "string",
+          "description": "Detailed alert message in Sinhala, generated for PHIs."
+        },
+        "messageTamil": {
+          "type": "string",
+          "description": "Detailed alert message in Tamil, generated for PHIs."
         }
       },
       "required": [
         "id",
-        "alertGeneratedAt",
-        "surveillanceReportId",
-        "locationLatitude",
-        "locationLongitude",
+        "surveillanceSampleId",
+        "alertTimestamp",
         "riskLevel",
-        "description",
         "isResolved"
       ]
     },
-    "DistrictRisk": {
+    "NeutralizationVerification": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "DistrictRisk",
+      "title": "NeutralizationVerification",
       "type": "object",
-      "description": "Stores the calculated weather-based mosquito breeding risk for a specific district.",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "The name of the district."
-        },
-        "riskLevel": {
-          "type": "number",
-          "description": "The calculated risk level (1-10)."
-        },
-        "assessment": {
-          "type": "string",
-          "description": "The AI-generated assessment of the risk."
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the risk was last updated.",
-          "format": "date-time"
-        },
-        "temperature": {
-          "type": "number",
-          "description": "Temperature in Celsius at the time of calculation."
-        },
-        "humidity": {
-          "type": "number",
-          "description": "Humidity percentage at the time of calculation."
-        },
-        "rainfall": {
-          "type": "number",
-          "description": "Rainfall in mm at the time of calculation."
-        }
-      },
-      "required": [
-        "name",
-        "riskLevel",
-        "assessment",
-        "updatedAt"
-      ]
-    },
-    "DistrictHealthReport": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "DistrictHealthReport",
-      "description": "Stores daily health statistics for a district, including new cases and deaths, reported by authorized health officers.",
-      "type": "object",
+      "description": "Records the verification process of a breeding site being neutralized/cleaned, typically by a second photo submission.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the health report."
+          "description": "Unique identifier for the NeutralizationVerification entity."
         },
-        "districtName": {
+        "surveillanceSampleId": {
           "type": "string",
-          "description": "The name of the district for which the report is filed."
+          "description": "Reference to the original SurveillanceSample that this verification pertains to. (Relationship: SurveillanceSample 1:1 NeutralizationVerification)"
         },
-        "reportedDate": {
+        "verificationImageUrl": {
           "type": "string",
-          "description": "The date for which the statistics are being reported.",
-          "format": "date"
+          "description": "URL of the image uploaded to confirm the breeding site's neutralization (e.g., cleaned tire, overturned pot).",
+          "format": "uri"
         },
-        "cases": {
-          "type": "number",
-          "description": "Number of new cases reported for the date."
-        },
-        "deaths": {
-          "type": "number",
-          "description": "Number of deaths reported for the date."
-        },
-        "reportedById": {
+        "verificationTimestamp": {
           "type": "string",
-          "description": "The UID of the authenticated officer who submitted the report."
-        },
-        "reportedAt": {
-          "type": "string",
-          "description": "Timestamp when the report was submitted.",
+          "description": "Timestamp when the neutralization verification image was uploaded.",
           "format": "date-time"
+        },
+        "isVerifiedByAI": {
+          "type": "boolean",
+          "description": "Indicates whether the AI has confirmed the successful neutralization of the breeding site from the verification image."
+        },
+        "verifierId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who submitted this neutralization verification. (Relationship: UserProfile 1:N NeutralizationVerification)"
+        },
+        "pointsAwarded": {
+          "type": "number",
+          "description": "Points awarded to the verifier for successfully confirming a neutralized breeding site."
         }
       },
       "required": [
         "id",
-        "districtName",
-        "reportedDate",
-        "cases",
-        "deaths",
-        "reportedById",
-        "reportedAt"
+        "surveillanceSampleId",
+        "verificationImageUrl",
+        "verificationTimestamp",
+        "isVerifiedByAI",
+        "verifierId",
+        "pointsAwarded"
       ]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous",
-      "google.com"
+      "anonymous"
     ]
   },
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}",
+        "path": "/userProfiles/{userId}",
         "definition": {
           "entityName": "UserProfile",
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Stores user-specific data, such as earned points and display information. Accessible only by the owner (userId matches request.auth.uid). Includes denormalized 'id' for authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique ID of the user, matching Firebase Authentication UID."
-            }
-          ]
+          "description": "Stores individual user profile data, accessible only by the owning user. The 'id' field is implicitly mapped to the Firebase Authentication UID. Includes denormalized 'role' field."
         }
       },
       {
-        "path": "/roles_phi/{phiId}",
+        "path": "/roles_phi/{userId}",
         "definition": {
-          "entityName": "Role",
+          "entityName": "PhiRole",
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "A collection used to designate Public Health Inspectors (PHIs). The mere existence of a document at this path signifies that the 'phiId' is a PHI, enabling role-based access control (DBAC - Existence over Content). Documents in this collection are typically empty or contain minimal identifying data.",
+          "description": "Grants Public Health Inspector (PHI) role. The existence of a document at this path for a specific userId signifies PHI status for robust DBAC. No specific schema is expected beyond a simple placeholder document.",
           "params": [
             {
-              "name": "phiId",
-              "description": "The unique ID of a user designated as a Public Health Inspector, matching Firebase Authentication UID."
+              "name": "userId",
+              "description": "The UID of the user who is assigned the PHI role."
             }
           ]
         }
       },
       {
-        "path": "/surveillance_reports_private/{reportId}",
+        "path": "/surveillanceSamples/{sampleId}",
         "definition": {
-          "entityName": "SurveillanceReport",
+          "entityName": "SurveillanceSample",
           "schema": {
-            "$ref": "#/backend/entities/SurveillanceReport"
+            "$ref": "#/backend/entities/SurveillanceSample"
           },
-          "description": "Stores the complete, detailed surveillance report, including sensitive information. Accessible by the report's submitter and authenticated PHIs. Includes denormalized 'submittedById' for authorization independence, allowing direct security rule checks.",
+          "description": "Central collection for all mosquito larvae surveillance samples. Includes denormalized 'uploaderId' for authorization independence, allowing efficient queries for user-specific data, global heatmap visualization, and PHI access. The 'id' field of the sample is explicitly matched to '{sampleId}'.",
           "params": [
             {
-              "name": "reportId",
-              "description": "The unique ID of the surveillance report."
+              "name": "sampleId",
+              "description": "The unique identifier for the surveillance sample."
             }
           ]
         }
       },
       {
-        "path": "/surveillance_reports_public_map_data/{reportId}",
-        "definition": {
-          "entityName": "SurveillanceReport",
-          "schema": {
-            "$ref": "#/backend/entities/SurveillanceReport"
-          },
-          "description": "Stores a minimal subset of SurveillanceReport data (latitude, longitude, riskLevel, isNeutralized, submittedAt, and a reference to the private report) for public display on the real-time heatmap. This collection is publicly readable for QAPs and only writable by the Cloud Function. Includes denormalized 'riskLevel', 'latitude', 'longitude' for authorization independence and efficient map visualization.",
-          "params": [
-            {
-              "name": "reportId",
-              "description": "The unique ID of the surveillance report for public map data."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/phi_alerts/{alertId}",
+        "path": "/phiAlerts/{alertId}",
         "definition": {
           "entityName": "PHIAlert",
           "schema": {
             "$ref": "#/backend/entities/PHIAlert"
           },
-          "description": "Stores automated alerts generated for Public Health Inspectors (PHIs) when high-risk breeding sites are detected. Accessible only by authenticated PHIs. Includes denormalized 'locationLatitude', 'locationLongitude', 'riskLevel', and 'surveillanceReportId' for authorization independence.",
+          "description": "Stores automated alerts triggered by high-risk surveillance samples, intended for Public Health Inspectors (PHIs). Includes denormalized 'assignedToUserId' for PHI-specific access control and 'surveillanceSampleId' for direct linkage. The 'id' field of the alert is explicitly matched to '{alertId}'.",
           "params": [
             {
               "name": "alertId",
-              "description": "The unique ID of the PHI alert."
+              "description": "The unique identifier for the PHI alert."
             }
           ]
         }
       },
       {
-        "path": "/district_risks/{districtName}",
+        "path": "/neutralizationVerifications/{verificationId}",
         "definition": {
-          "entityName": "DistrictRisk",
+          "entityName": "NeutralizationVerification",
           "schema": {
-            "$ref": "#/backend/entities/DistrictRisk"
+            "$ref": "#/backend/entities/NeutralizationVerification"
           },
-          "description": "Stores cached weather-based risk assessments for each district. Publicly readable for map visualization, but only writable by a trusted server process to prevent recalculating on every load.",
+          "description": "Records user submissions to verify the neutralization of a breeding site. Includes denormalized 'verifierId' for authorization independence and 'surveillanceSampleId' for direct linkage to the original sample. The 'id' field of the verification is explicitly matched to '{verificationId}'.",
           "params": [
             {
-              "name": "districtName",
-              "description": "The name of the Sri Lankan district."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/district_health_reports/{reportId}",
-        "definition": {
-          "entityName": "DistrictHealthReport",
-          "schema": {
-            "$ref": "#/backend/entities/DistrictHealthReport"
-          },
-          "description": "Stores daily health statistics (cases, deaths) per district. Writable only by PHIs, and readable by PHIs for analytics.",
-          "params": [
-            {
-              "name": "reportId",
-              "description": "The unique ID of the health report."
+              "name": "verificationId",
+              "description": "The unique identifier for the neutralization verification."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore data structure for AedesGuard AI is designed to prioritize Authorization Independence, Structural Segregation, and clear Access Modeling, ensuring a secure, scalable, and debuggable system. \n\n**Authorization Independence:** All documents incorporate denormalized authorization context where necessary. For `SurveillanceReport` documents, the `submittedById` field is explicitly stored within each report. This allows Firestore Security Rules to directly check `request.auth.uid == resource.data.submittedById` for submitter-specific access, eliminating the need for `get()` calls to parent or related documents. Similarly, `PHIAlert` documents denormalize `locationLatitude`, `locationLongitude`, and `riskLevel` from the originating `SurveillanceReport`, ensuring that rules for `PHIAlerts` do not depend on fetching the parent report. PHI roles are managed via a dedicated `/roles_phi/{phiId}` collection, enabling authorization based on document existence rather than requiring complex `get()` operations or custom claims.\n\n**Structural Segregation (QAPs):** The core principle of 'Query Against Permissions' (QAPs) is achieved through structural segregation, particularly for `SurveillanceReport` data. Instead of mixing public and private information in a single collection, we introduce two distinct collections:\n\n1.  `/surveillance_reports_private/{reportId}`: This collection stores the complete, detailed `SurveillanceReport` data, including sensitive information like original image URLs, habitat descriptions, and full risk reports. Access to this collection is restricted to the original submitter (`submittedById`) and authorized PHIs, ensuring data privacy and integrity.\n2.  `/surveillance_reports_public_map_data/{reportId}`: This collection serves the real-time heatmap visualization. It contains only a minimal subset of `SurveillanceReport` data (`latitude`, `longitude`, `riskLevel`, `isNeutralized`, `submittedAt`, and a reference to the private report). This collection is publicly readable, allowing any user to fetch data for the heatmap without exposing private details or requiring client-side filtering. This design guarantees that `list` operations for the heatmap are inherently secure and efficient, as rules can simply grant read access to this collection. The `riskLevel` field is stored directly in the database within both report types, directly addressing the user's requirement to save risk calculations and avoid re-computation for map visualization.\n\n**Access Modeling:**\n*   **Private User Data:** `UserProfile` data is stored in `/users/{userId}/userProfile`, adhering to path-based ownership where `{userId}` matches `request.auth.uid` for simple, secure access control.\n*   **Global Roles (DBAC):** PHI access is controlled by the existence of a document in `/roles_phi/{phiId}`, allowing for straightforward role-based authorization.\n*   **Restricted Operational Data:** `PHIAlerts` are stored in `/phi_alerts/{alertId}`, accessible only by authenticated PHIs, ensuring that these critical operational alerts are only seen by relevant personnel.\n\nThis structure ensures that security rules are explicit, concise, and easy to debug, as each collection has a clear and homogeneous security posture, and authorization dependencies are minimized through denormalization."
+    "reasoning": "The Firestore structure prioritizes Authorization Independence and Structural Segregation to simplify security rules and ensure scalability.\n\n1.  \"userProfiles/{userId}\": This collection stores individual user profiles. Access is strictly path-based: `request.auth.uid` must match `{userId}`. This ensures private user data is isolated. Each document also contains the `role` field for general categorization, but critical authorization (e.g., PHI status) is handled by a dedicated role collection.\n2.  \"roles_phi/{userId}\": This collection implements Database Access Control (DBAC) for Public Health Inspectors (PHIs). The *existence* of a document at `/roles_phi/$(request.auth.uid)` grants PHI privileges. This adheres to the 'Existence over Content' principle, eliminating the need for `get()` calls on `UserProfile` documents to check roles, making authorization atomic and highly performant for rules.\n3.  \"surveillanceSamples/{sampleId}\": This is the core collection for all mosquito larvae surveillance samples. Each document explicitly includes an `uploaderId` field, which is a direct denormalization of the sample's owner. This design achieves **Authorization Independence** by allowing security rules to check `resource.data.uploaderId == request.auth.uid` without `get()` calls to parent collections or user profiles. This collection also supports the **QAPs (Query as a Proxy)** principle:\n    *   For the global heatmap, read access can be granted to all authenticated users for specific fields (`latitude`, `longitude`, `riskLevel`, `isNeutralized`), enabling efficient listing without filtering in rules.\n    *   Users can list *only their own* samples efficiently by querying `where('uploaderId', '==', request.auth.uid)`, which is a secure and performant pattern.\n    *   PHIs (identified via `roles_phi`) can list all samples for broader surveillance.\n4.  \"phiAlerts/{alertId}\": This collection stores automated alerts for PHIs. The `assignedToUserId` field is denormalized within each alert document, allowing PHIs to access alerts assigned to them directly. All PHIs can read this collection, adhering to **Structural Segregation** as all alerts have a similar security posture (PHI-only access). Rule checks will use the `roles_phi` collection for PHI verification.\n5.  \"neutralizationVerifications/{verificationId}\": This collection records submissions for confirming neutralized breeding sites. The `verifierId` is denormalized into each document, enabling **Authorization Independence** for users to view their own verification submissions. PHIs (via `roles_phi` check) also have read access for oversight. This collection is crucial for the \"Search & Destroy\" feature and points system, with updates handled via Cloud Functions.\n\nThis structure allows for robust and easily debuggable security rules, minimizing complex `get()` calls and ensuring that all `list` operations are securely queryable. The denormalization of ownership (`uploaderId`, `verifierId`) and role-based access (`roles_phi`) are key to achieving high security and scalability."
   }
 }
