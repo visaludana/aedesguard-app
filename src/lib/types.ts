@@ -48,4 +48,7 @@ export type UserProfile = {
   displayName: string;
   email: string;
   lastActivityAt: string;
+  photoURL?: string;
+  idNumber?: string;
+  mobileNumber?: string;
 };

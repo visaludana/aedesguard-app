@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut, Settings, LifeBuoy } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -53,8 +53,16 @@ export function AppHeader({ title }: AppHeaderProps) {
             <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{user.displayName || user.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => toast({ title: 'Coming Soon!', description: 'The settings page is under development.'})}>Settings</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toast({ title: 'Coming Soon!', description: 'The support page is under development.'})}>Support</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast({ title: 'Coming Soon!', description: 'The support page is under development.'})}>
+                  <LifeBuoy className="mr-2 h-4 w-4" />
+                  Support
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
