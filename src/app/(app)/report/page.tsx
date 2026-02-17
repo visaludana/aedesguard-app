@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Lightbulb, Loader2, Locate, ShieldAlert, Upload, Camera, XCircle } from 'lucide-react';
+import { Lightbulb, Loader2, Locate, ShieldAlert, Upload, Camera, XCircle, ShieldQuestion, CheckCircle } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import dynamic from 'next/dynamic';
@@ -19,6 +19,8 @@ import { generateRiskReport } from '@/ai/flows/generate-risk-report';
 import { generateLocalizedSafetyAdvice } from '@/ai/flows/generate-localized-safety-advice';
 import type { SurveillanceSample } from '@/lib/types';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { classifyLarvae, ClassifyLarvaeOutput } from '@/ai/flows/classify-larvae';
+import { useToast } from '@/hooks/use-toast';
 
 // Dynamically import the map component
 const ReportLocationMap = dynamic(() => import('@/components/report-location-map').then(mod => mod.ReportLocationMap), {
@@ -35,143 +37,126 @@ function bufferToDataURI(buffer: ArrayBuffer, mimeType: string): string {
     return `data:${mimeType};base64,${btoa(binary)}`;
 }
 
-type FormState = {
-  message?: string;
-  riskReport?: {
-    sinhalaReport: string;
-    tamilReport: string;
-    englishReport: string;
-  };
-  safetyAdvice?: string;
-  error?: string;
+type SubmissionState = {
+    message?: string;
+    riskReport?: {
+        sinhalaReport: string;
+        tamilReport: string;
+        englishReport: string;
+    };
+    safetyAdvice?: string;
+    error?: string;
+    
+    // AI submission verification state
+    aiResult?: ClassifyLarvaeOutput;
+    isVerified?: boolean;
+    formData?: FormData;
 };
 
 export default function ReportPage() {
-  const { firestore, user } = useFirebase();
-  
-  const [state, setState] = useState<FormState>({});
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [location, setLocation] = useState({ lat: 7.8731, lng: 80.7718 }); // Default to Sri Lanka center
-  const [isSubmitting, setIsSubmitting] = useState(false);
+    const { firestore, user } = useFirebase();
+    const { toast } = useToast();
+    
+    const [state, setState] = useState<SubmissionState>({});
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [location, setLocation] = useState({ lat: 7.8731, lng: 80.7718 }); // Default to Sri Lanka center
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // New state and refs for camera
-  const [showCamera, setShowCamera] = useState(false);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const capturedImageDataUri = useRef<string | null>(null);
+    // Camera state
+    const [showCamera, setShowCamera] = useState(false);
+    const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const capturedImageDataUri = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (!showCamera) {
-      if (videoRef.current && videoRef.current.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            stream.getTracks().forEach(track => track.stop());
+    useEffect(() => {
+        if (!showCamera) {
+          if (videoRef.current && videoRef.current.srcObject) {
+                const stream = videoRef.current.srcObject as MediaStream;
+                stream.getTracks().forEach(track => track.stop());
+            }
+          return;
         }
-      return;
-    }
-    const getCameraPermission = async () => {
-      try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error('Camera not supported by your browser.');
-        }
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        setHasCameraPermission(true);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-      }
-    };
-    getCameraPermission();
-    return () => {
-        if (videoRef.current && videoRef.current.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            stream.getTracks().forEach(track => track.stop());
-        }
-    };
-  }, [showCamera]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        capturedImageDataUri.current = null;
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleTakePhoto = () => {
-    if (!videoRef.current) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    const context = canvas.getContext('2d');
-    if (context) {
-        context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        const dataUri = canvas.toDataURL('image/jpeg');
-        setImagePreview(dataUri);
-        capturedImageDataUri.current = dataUri;
-        setImageFile(null);
-        setShowCamera(false);
-    }
-  };
-
-  const clearPreview = () => {
-    setImagePreview(null);
-    setImageFile(null);
-    capturedImageDataUri.current = null;
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setState({});
-    setIsSubmitting(true);
-
-    if (!user || !firestore) {
-      setState({ error: "You must be logged in to submit a report." });
-      setIsSubmitting(false);
-      return;
-    }
-    if (!imageFile && !capturedImageDataUri.current) {
-        setState({ error: "Please upload or take a photo." });
-        setIsSubmitting(false);
-        return;
-    }
-
-    const formData = new FormData(e.currentTarget);
-    const habitatDescription = formData.get('habitatDescription') as string;
-    const locationName = formData.get('locationName') as string;
-    const language = formData.get('language') as 'Sinhala' | 'Tamil' | 'English';
-    const lat = parseFloat(formData.get('lat') as string);
-    const lng = parseFloat(formData.get('lng') as string);
-
-    if (!habitatDescription || !locationName || !language || !lat || !lng) {
-        setState({ error: "Please fill out all fields." });
-        setIsSubmitting(false);
-        return;
-    }
-
-    const surroundingsDescription = `${habitatDescription} near ${locationName}. Coordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-
-    try {
-        const mockClassification = {
-            speciesType: 'Aedes aegypti',
-            confidenceScore: 0.92,
+        const getCameraPermission = async () => {
+          try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+              throw new Error('Camera not supported by your browser.');
+            }
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            setHasCameraPermission(true);
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+            }
+          } catch (error) {
+            console.error('Error accessing camera:', error);
+            setHasCameraPermission(false);
+          }
         };
+        getCameraPermission();
+        return () => {
+            if (videoRef.current && videoRef.current.srcObject) {
+                const stream = videoRef.current.srcObject as MediaStream;
+                stream.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, [showCamera]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setImageFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string);
+                capturedImageDataUri.current = null;
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleTakePhoto = () => {
+        if (!videoRef.current) return;
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        const context = canvas.getContext('2d');
+        if (context) {
+            context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+            const dataUri = canvas.toDataURL('image/jpeg');
+            setImagePreview(dataUri);
+            capturedImageDataUri.current = dataUri;
+            setImageFile(null);
+            setShowCamera(false);
+        }
+    };
+
+    const clearPreview = () => {
+        setImagePreview(null);
+        setImageFile(null);
+        capturedImageDataUri.current = null;
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        setState({}); // Clear any previous AI results
+    };
+
+    const saveReport = async (formData: FormData, aiResult: ClassifyLarvaeOutput, appealStatus: 'pending' | 'none') => {
+        if (!user || !firestore) {
+            throw new Error("User not logged in or Firestore not available.");
+        }
+
+        const habitatDescription = formData.get('habitatDescription') as string;
+        const locationName = formData.get('locationName') as string;
+        const language = formData.get('language') as 'Sinhala' | 'Tamil' | 'English';
+        const lat = parseFloat(formData.get('lat') as string);
+        const lng = parseFloat(formData.get('lng') as string);
+        const surroundingsDescription = `${habitatDescription} near ${locationName}. Coordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 
         const [riskReport, safetyAdviceResult] = await Promise.all([
             generateRiskReport({
-                ...mockClassification,
+                speciesType: aiResult.speciesType,
+                confidenceInterval: aiResult.confidenceScore,
                 habitatDescription: surroundingsDescription,
             }),
             generateLocalizedSafetyAdvice({
@@ -190,17 +175,16 @@ export default function ReportPage() {
             throw new Error("No image provided.");
         }
 
-
         const newReport: Omit<SurveillanceSample, 'id'> = {
             timestamp: new Date().toISOString(),
             latitude: lat,
             longitude: lng,
-            originalImageUrl: imageDataUri, // Saving as data URI for demo purposes
-            speciesType: mockClassification.speciesType,
-            confidenceScore: mockClassification.confidenceScore,
+            originalImageUrl: imageDataUri, // For demo, saving as data URI. In prod, upload to Storage.
+            speciesType: aiResult.speciesType,
+            confidenceScore: aiResult.confidenceScore,
             habitatDescription: habitatDescription,
             locationName: locationName,
-            riskLevel: Math.floor(Math.random() * 5) + 5, // Random risk from 5-9
+            riskLevel: appealStatus === 'pending' ? 5 : Math.floor(Math.random() * 5) + 5, // Assign a moderate base risk for appealed, random for verified
             isNeutralized: false,
             reportEnglish: riskReport.englishReport,
             reportSinhala: riskReport.sinhalaReport,
@@ -208,6 +192,9 @@ export default function ReportPage() {
             uploaderId: user.uid,
             uploaderName: user.displayName || 'Anonymous',
             uploaderAvatarUrl: user.photoURL || '',
+            isVerifiedByAI: appealStatus !== 'pending',
+            aiSubmissionReasoning: aiResult.reasoning,
+            submissionAppealStatus: appealStatus,
         };
 
         const reportsCol = collection(firestore, 'surveillanceSamples');
@@ -221,19 +208,96 @@ export default function ReportPage() {
             throw new Error("Failed to save report to database. You may not have permissions.");
         });
 
-        setState({
-            message: 'Report submitted successfully. AI analysis complete.',
-            riskReport,
-            safetyAdvice: safetyAdviceResult.safetyAdvice,
-        });
+        return { riskReport, safetyAdvice: safetyAdviceResult.safetyAdvice };
+    };
 
-    } catch (e: any) {
-        console.error(e);
-        setState({ error: e.message || 'Failed to process report. The AI service may be unavailable.' });
-    } finally {
-        setIsSubmitting(false);
-    }
-  }
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setState({});
+        setIsSubmitting(true);
+
+        if (!user) {
+          setState({ error: "You must be logged in to submit a report." });
+          setIsSubmitting(false);
+          return;
+        }
+        if (!imageFile && !capturedImageDataUri.current) {
+            setState({ error: "Please upload or take a photo." });
+            setIsSubmitting(false);
+            return;
+        }
+
+        const currentFormData = new FormData(e.currentTarget);
+        const lat = currentFormData.get('lat') as string;
+        if (!lat || !currentFormData.get('habitatDescription') || !currentFormData.get('locationName')) {
+            setState({ error: "Please fill out all required fields." });
+            setIsSubmitting(false);
+            return;
+        }
+
+        try {
+            let photoDataUri: string;
+            if (capturedImageDataUri.current) {
+                photoDataUri = capturedImageDataUri.current;
+            } else if (imageFile) {
+                const buffer = await imageFile.arrayBuffer();
+                photoDataUri = bufferToDataURI(buffer, imageFile.type);
+            } else {
+                throw new Error("No image data available");
+            }
+            
+            const submissionAiResult = await classifyLarvae({ photoDataUri });
+
+            if (submissionAiResult.speciesType === 'No Larvae Detected') {
+                // AI rejected, show appeal option
+                setState({
+                    isVerified: false,
+                    aiResult: submissionAiResult,
+                    formData: currentFormData,
+                    error: `AI analysis determined no larvae were present.`
+                });
+            } else {
+                // AI approved, save the report
+                const { riskReport, safetyAdvice } = await saveReport(currentFormData, submissionAiResult, 'none');
+                setState({
+                    message: 'Report submitted successfully. AI analysis complete.',
+                    riskReport,
+                    safetyAdvice,
+                    isVerified: true,
+                    aiResult: submissionAiResult
+                });
+            }
+        } catch (e: any) {
+            console.error(e);
+            setState({ error: e.message || 'Failed to process report. The AI service is unavailable.' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+    
+    const handleAppealAndSubmit = async () => {
+        if (!state.formData || !state.aiResult) return;
+        setIsSubmitting(true);
+        setState(s => ({ ...s, error: undefined, message: undefined }));
+        
+        try {
+            await saveReport(state.formData, state.aiResult, 'pending');
+            toast({
+                title: "Appeal Submitted",
+                description: "Your report has been submitted for manual review by a health officer."
+            });
+            setState({ message: "Report submitted for manual review." });
+            // Clear the form after successful appeal
+            clearPreview();
+        } catch (e: any) {
+            console.error(e);
+            setState(s => ({ ...s, error: e.message || 'Failed to submit appeal.' }));
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const isResultState = state.message || state.error;
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -242,7 +306,7 @@ export default function ReportPage() {
           <CardHeader>
             <CardTitle>Report a Breeding Site</CardTitle>
             <CardDescription>
-              Submit a photo and details of a potential mosquito breeding ground.
+              Submit a photo and details of a potential mosquito breeding ground. AI will pre-verify your submission.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -344,23 +408,51 @@ export default function ReportPage() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
+            <Button type="submit" disabled={isSubmitting || isResultState} className="w-full md:w-auto">
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Submit Report
+              Submit for AI Verification
             </Button>
           </CardFooter>
         </Card>
       </form>
       
       <div className="space-y-6">
-        {state.error && (
+        {state.aiResult && (
+             <Alert variant={state.isVerified ? 'default' : 'destructive'} className={state.isVerified ? 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800' : ''}>
+                {state.isVerified ? <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" /> : <XCircle className="h-4 w-4" />}
+                <AlertTitle className={state.isVerified ? 'text-green-800 dark:text-green-300' : ''}>
+                    AI Verification: {state.isVerified ? 'Larvae Detected' : 'No Larvae Detected'}
+                </AlertTitle>
+                <AlertDescription className={cn('flex flex-col gap-4', state.isVerified ? 'text-green-700 dark:text-green-400' : '')}>
+                    <span><strong>AI Reason:</strong> {state.aiResult.reasoning}</span>
+                    <span><strong>Species:</strong> {state.aiResult.speciesType} ({ (state.aiResult.confidenceScore * 100).toFixed(1) }%)</span>
+                    {state.isVerified === false && (
+                        <div className="flex gap-2 items-center">
+                            <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={handleAppealAndSubmit}
+                                disabled={isSubmitting}
+                            >
+                               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                               <ShieldQuestion className="mr-2 h-4 w-4" />
+                               Appeal & Submit Anyway
+                            </Button>
+                        </div>
+                    )}
+                </AlertDescription>
+            </Alert>
+        )}
+
+        {state.error && !state.aiResult && (
             <Alert variant="destructive">
                 <ShieldAlert className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{state.error}</AlertDescription>
             </Alert>
         )}
-        {state.message && !state.error && (
+
+        {state.message && state.isVerified && (
           <div className="space-y-6">
             <Alert variant="default" className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800">
                 <Lightbulb className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -406,5 +498,3 @@ export default function ReportPage() {
     </div>
   );
 }
-
-    

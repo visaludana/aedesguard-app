@@ -2,12 +2,12 @@
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, where } from 'firebase/firestore';
 import type { SurveillanceSample } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
@@ -29,7 +29,11 @@ function StatusBadge({ isNeutralized }: { isNeutralized: boolean }) {
 export default function VerifyPage() {
   const { firestore } = useFirebase();
   const reportsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'surveillanceSamples'), orderBy('timestamp', 'desc')) : null),
+    () => (firestore ? query(
+        collection(firestore, 'surveillanceSamples'), 
+        where('submissionAppealStatus', 'in', ['none', 'approved']),
+        orderBy('timestamp', 'desc')
+    ) : null),
     [firestore]
   );
   const { data: reports, isLoading } = useCollection<SurveillanceSample>(reportsQuery);

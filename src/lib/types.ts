@@ -10,7 +10,7 @@ export type SurveillanceSample = {
   originalImageUrl: string; // URL or data URI
   
   // AI Classification fields
-  speciesType: 'Aedes aegypti' | 'Culex' | 'Unknown';
+  speciesType: 'Aedes aegypti' | 'Culex' | 'No Larvae Detected' | 'Unknown';
   confidenceScore: number;
   riskLevel: number; // 1-10
   
@@ -26,6 +26,11 @@ export type SurveillanceSample = {
   uploaderId: string;
   uploaderName: string;
   uploaderAvatarUrl?: string;
+
+  // AI Submission Verification fields
+  isVerifiedByAI?: boolean;
+  aiSubmissionReasoning?: string;
+  submissionAppealStatus?: 'pending' | 'approved' | 'rejected' | 'none';
 };
 
 

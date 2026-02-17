@@ -3,12 +3,12 @@
 
 import { useMemo, useState } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, where, doc, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, where, doc, writeBatch, updateDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DistrictHealthReport, NeutralizationVerification } from '@/lib/types';
+import { DistrictHealthReport, NeutralizationVerification, SurveillanceSample } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert, Info, ThumbsUp, ThumbsDown, Loader2, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -18,7 +18,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
-function AppealsConsole() {
+function NeutralizationAppealsConsole() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
     const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -93,28 +93,14 @@ function AppealsConsole() {
     }
 
     if (!appeals || appeals.length === 0) {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Verification Appeals</CardTitle>
-                    <CardDescription>Review user-submitted appeals for AI verification decisions.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                     <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertTitle>No Pending Appeals</AlertTitle>
-                        <AlertDescription>There are currently no verification appeals to review.</AlertDescription>
-                    </Alert>
-                </CardContent>
-            </Card>
-        );
+        return null; // Don't render the card if there are no appeals
     }
 
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Verification Appeals ({appeals.length})</CardTitle>
-                <CardDescription>Review user-submitted appeals for AI verification decisions.</CardDescription>
+                <CardTitle>Neutralization Appeals ({appeals.length})</CardTitle>
+                <CardDescription>Review user-submitted appeals for AI neutralization verification decisions.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Accordion type="single" collapsible className="w-full">
@@ -160,6 +146,136 @@ function AppealsConsole() {
                                     >
                                         {updatingId === appeal.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />}
                                         Approve Neutralization
+                                    </Button>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    ))}
+                </Accordion>
+            </CardContent>
+        </Card>
+    )
+}
+
+function SubmissionAppealsConsole() {
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
+    const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+    const appealsQuery = useMemoFirebase(
+        () => (firestore ? query(collection(firestore, 'surveillanceSamples'), where('submissionAppealStatus', '==', 'pending'), orderBy('timestamp', 'desc')) : null),
+        [firestore]
+    );
+    const { data: appeals, isLoading, error } = useCollection<SurveillanceSample>(appealsQuery);
+
+    const handleDecision = async (report: SurveillanceSample, decision: 'approved' | 'rejected') => {
+        if (!firestore || !report.id) return;
+        setUpdatingId(report.id);
+        
+        try {
+            const reportRef = doc(firestore, 'surveillanceSamples', report.id);
+            await updateDoc(reportRef, { submissionAppealStatus: decision });
+
+            toast({
+                title: `Submission Appeal ${decision}`,
+                description: `The report has been ${decision}.`
+            });
+        } catch (err) {
+            console.error(err);
+            toast({
+                variant: 'destructive',
+                title: "Update Failed",
+                description: "Could not update the submission appeal status."
+            })
+        } finally {
+            setUpdatingId(null);
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader><CardTitle>Submission Appeals</CardTitle></CardHeader>
+                <CardContent><Skeleton className="h-24 w-full" /></CardContent>
+            </Card>
+        );
+    }
+    
+    if (error) {
+         return (
+            <Card>
+                <CardHeader><CardTitle>Submission Appeals</CardTitle></CardHeader>
+                <CardContent>
+                    <Alert variant="destructive">
+                        <ShieldAlert className="h-4 w-4" />
+                        <AlertTitle>Error Loading Appeals</AlertTitle>
+                        <AlertDescription>Could not load pending submission appeals.</AlertDescription>
+                    </Alert>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    if (!appeals || appeals.length === 0) {
+        return null; // Don't render the card if there are no appeals
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Submission Appeals ({appeals.length})</CardTitle>
+                <CardDescription>Review reports that were rejected by AI but appealed by the user.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Accordion type="single" collapsible className="w-full">
+                    {appeals.map(report => (
+                        <AccordionItem value={report.id!} key={report.id!}>
+                            <AccordionTrigger>
+                                <div className="flex justify-between items-center w-full pr-4">
+                                    <span className="font-medium">Appeal by {report.uploaderName}</span>
+                                    <span className="text-sm text-muted-foreground">{format(new Date(report.timestamp), 'PP')}</span>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <h4 className="font-semibold text-sm mb-2">Submitted Photo</h4>
+                                        <Image src={report.originalImageUrl} alt="Submitted report" width={400} height={300} className="rounded-md w-full aspect-video object-cover" />
+                                    </div>
+                                    <div className="space-y-4">
+                                        <Alert variant="destructive">
+                                            <XCircle className="h-4 w-4" />
+                                            <AlertTitle>AI Decision: {report.speciesType}</AlertTitle>
+                                            <AlertDescription>{report.aiSubmissionReasoning}</AlertDescription>
+                                        </Alert>
+                                        <div>
+                                            <h4 className="font-semibold text-sm">Habitat Description</h4>
+                                            <p className="text-sm text-muted-foreground">{report.habitatDescription}</p>
+                                        </div>
+                                         <div>
+                                            <h4 className="font-semibold text-sm">Location</h4>
+                                            <p className="text-sm text-muted-foreground">{report.locationName}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 justify-end pt-2">
+                                     <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={updatingId === report.id}
+                                        onClick={() => handleDecision(report, 'rejected')}
+                                    >
+                                        {updatingId === report.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsDown className="mr-2 h-4 w-4" />}
+                                        Reject Report
+                                    </Button>
+                                    <Button
+                                        variant="default"
+                                        size="sm"
+                                        disabled={updatingId === report.id}
+                                        onClick={() => handleDecision(report, 'approved')}
+                                    >
+                                        {updatingId === report.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />}
+                                        Approve Report
                                     </Button>
                                 </div>
                             </AccordionContent>
@@ -245,7 +361,25 @@ export default function AdminConsolePage() {
 
   return (
     <div className="space-y-6">
-      <AppealsConsole />
+      <SubmissionAppealsConsole />
+      <NeutralizationAppealsConsole />
+      
+      <Card>
+          <CardHeader>
+              <CardTitle>Appeals Consoles</CardTitle>
+              <CardDescription>
+                  Review user-submitted appeals for AI verification decisions.
+              </CardDescription>
+          </CardHeader>
+          <CardContent>
+              <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>No Pending Appeals</AlertTitle>
+                  <AlertDescription>There are currently no appeals to review in any category.</AlertDescription>
+              </Alert>
+          </CardContent>
+      </Card>
+
 
       {!reports || reports.length === 0 ? (
         <Card>

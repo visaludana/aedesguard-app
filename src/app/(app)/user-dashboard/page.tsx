@@ -54,7 +54,11 @@ export default function UserDashboardPage() {
     const [error, setError] = useState<string | null>(null);
 
     const reportsQuery = useMemoFirebase(
-      () => (firestore ? query(collection(firestore, 'surveillanceSamples'), orderBy('timestamp', 'desc')) : null),
+      () => (firestore ? query(
+          collection(firestore, 'surveillanceSamples'), 
+          where('submissionAppealStatus', 'in', ['none', 'approved']),
+          orderBy('timestamp', 'desc')
+      ) : null),
       [firestore]
     );
     const { data: allReports, isLoading: isLoadingReports } = useCollection<SurveillanceSample>(reportsQuery);

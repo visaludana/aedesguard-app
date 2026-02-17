@@ -1,10 +1,11 @@
 
 'use client';
 
+import React from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, where } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, ShieldAlert, Target, Loader2 } from 'lucide-react';
+import { CheckCircle, ShieldAlert, Target } from 'lucide-react';
 import ClientMap from '@/components/client-map';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DistrictRiskMap from '@/components/district-risk-map';
@@ -37,7 +38,11 @@ export default function DashboardPage() {
   const [cachedDistrictRisks, setCachedDistrictRisks] = React.useState<any[]>([]);
 
   const reportsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'surveillanceSamples'), orderBy('timestamp', 'desc')) : null),
+    () => (firestore ? query(
+        collection(firestore, 'surveillanceSamples'), 
+        where('submissionAppealStatus', 'in', ['none', 'approved']),
+        orderBy('timestamp', 'desc')
+    ) : null),
     [firestore]
   );
   const { data: reports, isLoading: isLoadingReports } = useCollection<SurveillanceSample>(reportsQuery);

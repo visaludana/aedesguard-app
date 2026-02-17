@@ -78,7 +78,8 @@
         },
         "speciesType": {
           "type": "string",
-          "description": "Classification result of the mosquito larvae species (e.g., 'Aedes aegypti', 'Culex', 'No Larvae Detected')."
+          "description": "Classification result of the mosquito larvae species (e.g., 'Aedes aegypti', 'Culex', 'No Larvae Detected').",
+          "enum": ["Aedes aegypti", "Culex", "No Larvae Detected"]
         },
         "confidenceScore": {
           "type": "number",
@@ -111,6 +112,24 @@
         "uploaderId": {
           "type": "string",
           "description": "Reference to the UserProfile who uploaded this surveillance sample. (Relationship: UserProfile 1:N SurveillanceSample)"
+        },
+        "isVerifiedByAI": {
+          "type": "boolean",
+          "description": "Result of the initial AI check upon submission to detect larvae."
+        },
+        "aiSubmissionReasoning": {
+          "type": "string",
+          "description": "The AI's reasoning if it initially rejected the submission."
+        },
+        "submissionAppealStatus": {
+          "type": "string",
+          "description": "The status of an appeal if the AI's initial submission check was contested by the user.",
+          "enum": [
+            "pending",
+            "approved",
+            "rejected",
+            "none"
+          ]
         }
       },
       "required": [
@@ -124,7 +143,9 @@
         "habitatDescription",
         "riskLevel",
         "isNeutralized",
-        "uploaderId"
+        "uploaderId",
+        "isVerifiedByAI",
+        "submissionAppealStatus"
       ]
     },
     "PHIAlert": {

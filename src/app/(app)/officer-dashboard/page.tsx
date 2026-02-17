@@ -2,7 +2,7 @@
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, where } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, ClipboardPlus } from 'lucide-react';
 import Link from 'next/link';
@@ -16,7 +16,11 @@ export default function OfficerDashboardPage() {
   const { firestore } = useFirebase();
   
   const reportsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'surveillanceSamples'), orderBy('timestamp', 'desc')) : null),
+    () => (firestore ? query(
+        collection(firestore, 'surveillanceSamples'), 
+        where('submissionAppealStatus', 'in', ['none', 'approved', 'pending']),
+        orderBy('timestamp', 'desc')
+    ) : null),
     [firestore]
   );
   const { data: reports, isLoading } = useCollection<SurveillanceSample>(reportsQuery);
