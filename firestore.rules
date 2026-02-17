@@ -119,12 +119,7 @@ service cloud.firestore {
      * @principle Implements a "Public Read with Owner-Only Writes" model.
      */
     match /surveillanceSamples/{sampleId} {
-      allow read: if isPhi() || (
-        isSignedIn() && (
-          resource.data.submissionAppealStatus == 'approved' ||
-          resource.data.submissionAppealStatus == 'none'
-        )
-      );
+      allow read: if isPhi() || resource.data.submissionAppealStatus in ['approved', 'none'];
       allow create: if isSignedIn() && request.resource.data.uploaderId == request.auth.uid;
       allow update: if isExistingOwner(resource.data.uploaderId) || isPhi();
       allow delete: if isExistingOwner(resource.data.uploaderId);
