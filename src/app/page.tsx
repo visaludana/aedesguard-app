@@ -40,7 +40,7 @@ export default function LandingPage() {
                     <Link href="/signup">Get Started Free</Link>
                   </Button>
                    <Button asChild size="lg" variant="outline">
-                    <Link href="/dashboard">View Public Dashboard</Link>
+                    <Link href="/public-dashboard">View Public Dashboard</Link>
                   </Button>
                 </div>
               </div>

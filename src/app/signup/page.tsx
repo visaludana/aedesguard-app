@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -70,7 +71,7 @@ export default function SignupPage() {
               throw new Error("Could not create user profile after Google sign-in.");
             });
           }
-          router.push('/dashboard');
+          router.push('/user-dashboard');
         } else {
           // No redirect result, so not a sign-in redirect.
           setIsProcessingRedirect(false);
@@ -90,7 +91,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (user && !isUserLoading && !isProcessingRedirect) {
-      router.push('/dashboard');
+      router.push('/user-dashboard');
     }
   }, [user, isUserLoading, isProcessingRedirect, router]);
 
@@ -133,7 +134,7 @@ export default function SignupPage() {
             throw new Error("Could not create user profile. You may not have permissions.");
         });
       
-      router.push('/dashboard');
+      router.push('/user-dashboard');
 
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {

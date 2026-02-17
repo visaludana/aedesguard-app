@@ -79,7 +79,7 @@ export default function OfficerDashboardPage() {
             </div>
           </Link>
           <Link
-            href="/admin-console"
+            href="/admin-dashboard"
             className={cn(
               buttonVariants({ variant: 'outline' }),
               'h-20 text-base py-2 flex items-center justify-start text-left w-full'

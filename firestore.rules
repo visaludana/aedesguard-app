@@ -119,7 +119,13 @@ service cloud.firestore {
      * @principle Implements a "Public Read with Owner-Only Writes" model.
      */
     match /surveillanceSamples/{sampleId} {
-      allow read: if isPhi() || resource.data.submissionAppealStatus in ['approved', 'none'];
+      // PHIs can read everything.
+      allow read: if isPhi();
+      
+      // All users (including public) can read approved or un-appealed samples.
+      // Separating this from the PHI rule makes the rule easier for Firestore to evaluate.
+      allow read: if resource.data.submissionAppealStatus in ['approved', 'none'];
+
       allow create: if isSignedIn() && request.resource.data.uploaderId == request.auth.uid;
       allow update: if isExistingOwner(resource.data.uploaderId) || isPhi();
       allow delete: if isExistingOwner(resource.data.uploaderId);

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,12 +12,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import { AedesGuardLogo } from '@/components/icons';
+import { useRouter } from 'next/navigation';
 
 const ADMIN_EMAIL = 'admin@aedesguard.com';
 
 export default function AdminLoginPage() {
   const { auth } = useFirebase();
   const { user, isUserLoading } = useUser();
+  const router = useRouter();
 
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -25,9 +28,9 @@ export default function AdminLoginPage() {
   // Redirect a logged in user to the console.
   useEffect(() => {
     if (!isUserLoading && user) {
-      window.location.href = '/admin-console';
+      router.push('/admin-dashboard');
     }
-  }, [user, isUserLoading]);
+  }, [user, isUserLoading, router]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -42,7 +45,7 @@ export default function AdminLoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, ADMIN_EMAIL, password);
-      window.location.href = '/admin-console';
+      router.push('/admin-dashboard');
     } catch (err: any) {
       switch (err.code) {
         case 'auth/user-not-found':
@@ -76,7 +79,7 @@ export default function AdminLoginPage() {
       <Card className="w-full max-w-sm">
         <form onSubmit={handleLogin}>
           <CardHeader>
-            <CardTitle>Admin Console Login</CardTitle>
+            <CardTitle>Admin Dashboard Login</CardTitle>
             <CardDescription>Enter your administrator password.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppHeader } from "@/components/app-header";
@@ -20,7 +21,7 @@ import { useUserRole } from "@/hooks/use-user-role";
 
 const allNavItems = {
   public: [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Public Dashboard" },
+    { href: "/public-dashboard", icon: LayoutDashboard, label: "Public Dashboard" },
   ],
   user: [
     { href: "/user-dashboard", icon: UserIcon, label: "My Dashboard" },
@@ -32,7 +33,7 @@ const allNavItems = {
     { href: "/report", icon: ShieldPlus, label: "Report Site" },
     { href: "/verify", icon: BadgeCheck, label: "Verify Sites" },
     { href: "/health-report", icon: ClipboardPlus, label: "Report Cases" },
-    { href: "/admin-console", icon: BarChart, label: "Admin Console" },
+    { href: "/admin-dashboard", icon: BarChart, label: "Admin Dashboard" },
   ]
 };
 
@@ -50,9 +51,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     const allItems = [...allNavItems.officer, ...allNavItems.user, ...allNavItems.public];
     const currentItem = allItems.find(item => pathname.startsWith(item.href));
     
-    if (pathname.includes('-dashboard') || pathname === '/dashboard') {
-      const roleTitle = role === 'officer' ? 'Officer' : role === 'user' ? 'User' : 'Public';
-      return `${roleTitle} Dashboard`;
+    if (pathname.includes('-dashboard')) {
+        if (pathname.startsWith('/public')) return 'Public Dashboard';
+        if (pathname.startsWith('/user')) return 'User Dashboard';
+        if (pathname.startsWith('/officer')) return 'Officer Dashboard';
+        if (pathname.startsWith('/admin')) return 'Admin Dashboard';
     }
     return currentItem ? currentItem.label : "AedesGuard";
   };

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -69,7 +70,7 @@ export default function LoginPage() {
               throw new Error("Could not create user profile after Google sign-in.");
             });
           }
-          router.push('/dashboard');
+          router.push('/user-dashboard');
         } else {
           // No redirect result, so not a sign-in redirect.
           setIsProcessingRedirect(false);
@@ -90,7 +91,7 @@ export default function LoginPage() {
   useEffect(() => {
     // If user is already logged in and we are not processing a redirect, go to dashboard.
     if (user && !isUserLoading && !isProcessingRedirect) {
-      router.push('/dashboard');
+      router.push('/user-dashboard');
     }
   }, [user, isUserLoading, isProcessingRedirect, router]);
 
@@ -108,7 +109,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
+      router.push('/user-dashboard');
     } catch (err: any) {
       switch (err.code) {
         case 'auth/user-not-found':
