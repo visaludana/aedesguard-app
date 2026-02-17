@@ -22,7 +22,13 @@ export async function getWeatherData(lat: number, lon: number): Promise<WeatherD
       return null;
     }
 
-    const data = await response.json();
+    const text = await response.text();
+    if (!text) {
+      console.error("Weather API returned an empty response body.");
+      return null;
+    }
+
+    const data = JSON.parse(text);
 
     return {
         temperature: data.main.temp,
@@ -30,7 +36,7 @@ export async function getWeatherData(lat: number, lon: number): Promise<WeatherD
         rainfall: data.rain?.['1h'] ?? 0,
     };
   } catch (error) {
-    console.error("Error fetching weather data:", error);
+    console.error("Error fetching or parsing weather data:", error);
     return null;
   }
 }

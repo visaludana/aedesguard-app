@@ -11,10 +11,10 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const VerifyBreedingSiteNeutralizationInputSchema = z.object({
-  beforePhotoDataUri: z
+  beforePhotoUrl: z
     .string()
     .describe(
-      "A photo of the breeding site before neutralization, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A URL or data URI of the photo of the breeding site before neutralization."
     ),
   afterPhotoDataUri: z
     .string()
@@ -56,7 +56,7 @@ Consider the following factors when making your determination:
 
 Provide a clear 'isNeutralized' boolean value (true if neutralized, false otherwise) and a detailed 'reason' explaining your decision.
 
-Before Photo: {{media url=beforePhotoDataUri}}
+Before Photo: {{media url=beforePhotoUrl}}
 After Photo: {{media url=afterPhotoDataUri}}`,
 });
 

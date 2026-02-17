@@ -23,39 +23,10 @@ type VerifyState = {
   message?: string;
 };
 
-// Helper to convert a buffer to a data URI
+// Helper to convert a file buffer to a data URI
 function bufferToDataURI(buffer: Buffer, mimeType: string): string {
     return `data:${mimeType};base64,${buffer.toString('base64')}`;
 }
-
-async function imageUrlToDataUri(imageUrl: string): Promise<string> {
-  // If it's already a data URI, just return it.
-  if (imageUrl.startsWith('data:image')) {
-    return imageUrl;
-  }
-
-  // If it is a web URL, fetch and convert it.
-  if (imageUrl.startsWith('http')) {
-    try {
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
-      }
-      const contentType = response.headers.get('content-type') || 'image/jpeg';
-      const buffer = Buffer.from(await response.arrayBuffer());
-      return bufferToDataURI(buffer, contentType);
-    } catch (error) {
-      console.error("Failed to convert image URL to data URI", error);
-      // Return a placeholder pixel to avoid breaking the AI call if fetch fails.
-      return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-    }
-  }
-
-  // Fallback for any other case
-  console.warn(`Could not process imageUrl: ${imageUrl}`);
-  return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-}
-
 
 export async function verifyNeutralization(
   prevState: VerifyState,
@@ -93,11 +64,11 @@ export async function verifyNeutralization(
         return { error: 'No after image provided.' };
     }
     
-    // Convert the 'before' image URL to a data URI.
-    const beforePhotoDataUri = await imageUrlToDataUri(report.imageUrl);
+    // The 'before' image URL can be passed directly to the AI model.
+    const beforePhotoUrl = report.imageUrl;
 
     const result = await verifyBreedingSiteNeutralization({
-        beforePhotoDataUri,
+        beforePhotoUrl: beforePhotoUrl, // Pass the URL directly
         afterPhotoDataUri: finalAfterPhotoDataUri
     });
 
