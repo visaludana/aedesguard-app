@@ -114,12 +114,17 @@ service cloud.firestore {
     /**
      * @description Stores all mosquito larvae surveillance samples submitted by users.
      * @path /surveillanceSamples/{sampleId}
-     * @allow (create) Any authenticated user submitting a new sample.
+     * @allow (read) A PHI reading any sample, or any user reading an approved/unappealed sample.
      * @deny (update) A user trying to modify a sample they did not upload.
      * @principle Implements a "Public Read with Owner-Only Writes" model.
      */
     match /surveillanceSamples/{sampleId} {
-      allow get, list: if isSignedIn();
+      allow read: if isPhi() || (
+        isSignedIn() && (
+          resource.data.submissionAppealStatus == 'approved' ||
+          resource.data.submissionAppealStatus == 'none'
+        )
+      );
       allow create: if isSignedIn() && request.resource.data.uploaderId == request.auth.uid;
       allow update: if isExistingOwner(resource.data.uploaderId) || isPhi();
       allow delete: if isExistingOwner(resource.data.uploaderId);
