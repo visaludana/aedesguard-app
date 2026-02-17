@@ -128,6 +128,9 @@ export default function LandingPage() {
           <Link href="#" className="text-xs hover:underline underline-offset-4">
             Privacy
           </Link>
+          <Link href="/login-admin" className="text-xs hover:underline underline-offset-4">
+            Admin Console
+          </Link>
         </nav>
       </footer>
     </div>
