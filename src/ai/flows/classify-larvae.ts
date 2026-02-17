@@ -10,7 +10,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
-export const ClassifyLarvaeInputSchema = z.object({
+const ClassifyLarvaeInputSchema = z.object({
   photoDataUri: z
     .string()
     .describe(
@@ -19,7 +19,7 @@ export const ClassifyLarvaeInputSchema = z.object({
 });
 export type ClassifyLarvaeInput = z.infer<typeof ClassifyLarvaeInputSchema>;
 
-export const ClassifyLarvaeOutputSchema = z.object({
+const ClassifyLarvaeOutputSchema = z.object({
   speciesType: z
     .enum(['Aedes aegypti', 'Culex', 'No Larvae Detected'])
     .describe('The classified species of mosquito larvae, or if none were detected.'),
