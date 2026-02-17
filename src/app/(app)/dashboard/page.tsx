@@ -1,11 +1,16 @@
-import { getReports } from '@/lib/data';
+
+'use client';
+
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy, where } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, ShieldAlert, Target } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { CheckCircle, ShieldAlert, Target, Loader2 } from 'lucide-react';
 import ClientMap from '@/components/client-map';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DistrictRiskMap from '@/components/district-risk-map';
 import { getDistrictRisks } from '@/lib/db';
+import type { SurveillanceSample } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function getRiskBadgeVariant(riskLevel: number): 'destructive' | 'secondary' | 'default' {
   if (riskLevel > 8) return 'destructive';
@@ -13,11 +18,37 @@ export function getRiskBadgeVariant(riskLevel: number): 'destructive' | 'seconda
   return 'default';
 }
 
-export default async function DashboardPage() {
-  const [reports, cachedDistrictRisks] = await Promise.all([
-    getReports(),
-    getDistrictRisks()
-  ]);
+function DashboardSkeleton() {
+  return (
+    <div className="grid gap-6">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
+      </div>
+      <Skeleton className="h-[500px]" />
+    </div>
+  )
+}
+
+export default function DashboardPage() {
+  const { firestore } = useFirebase();
+  const [cachedDistrictRisks, setCachedDistrictRisks] = React.useState<any[]>([]);
+
+  const reportsQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'surveillanceSamples'), orderBy('timestamp', 'desc')) : null),
+    [firestore]
+  );
+  const { data: reports, isLoading: isLoadingReports } = useCollection<SurveillanceSample>(reportsQuery);
+
+  React.useEffect(() => {
+    getDistrictRisks().then(setCachedDistrictRisks);
+  }, []);
+
+  if (isLoadingReports || !reports) {
+    return <DashboardSkeleton />;
+  }
 
   const highestRiskDistrictName = [...cachedDistrictRisks]
     .sort((a,b) => b.riskLevel - a.riskLevel)[0]?.name ?? '...';

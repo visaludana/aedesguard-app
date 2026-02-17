@@ -1,13 +1,25 @@
+
+'use client';
+
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, ClipboardPlus } from 'lucide-react';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { getReports } from '@/lib/data';
 import ClientMap from '@/components/client-map';
+import type { SurveillanceSample } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default async function OfficerDashboardPage() {
-  const reports = await getReports();
+export default function OfficerDashboardPage() {
+  const { firestore } = useFirebase();
+  
+  const reportsQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'surveillanceSamples'), orderBy('timestamp', 'desc')) : null),
+    [firestore]
+  );
+  const { data: reports, isLoading } = useCollection<SurveillanceSample>(reportsQuery);
 
   return (
     <div className="grid gap-6">
@@ -51,8 +63,9 @@ export default async function OfficerDashboardPage() {
           </Link>
         </CardContent>
       </Card>
-
-      <ClientMap reports={reports} />
+      
+      {isLoading && <Skeleton className="h-[500px]" />}
+      {reports && <ClientMap reports={reports} />}
       
     </div>
   );

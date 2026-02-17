@@ -3,14 +3,14 @@
 
 import { useMemo, useState } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, where, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, where, doc, writeBatch } from 'firebase/firestore';
 import Image from 'next/image';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DistrictHealthReport, NeutralizationVerification } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, Info, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
+import { ShieldAlert, Info, ThumbsUp, ThumbsDown, Loader2, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUserRole } from '@/hooks/use-user-role';

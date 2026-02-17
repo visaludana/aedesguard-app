@@ -1,21 +1,33 @@
 
-export type SurveillanceReport = {
-  id: string;
-  location: { lat: number; lng: number; };
+
+export type SurveillanceSample = {
+  id: string; // Firestore document ID
+  timestamp: string; // ISO 8601 date string
+  latitude: number;
+  longitude: number;
   locationName: string;
-  larvaeGenus: 'Aedes aegypti' | 'Culex' | 'Unknown';
-  riskLevel: number; // 1-10
-  isNeutralized: boolean;
-  reportedAt: string; // ISO 8601 date string
   habitatDescription: string;
-  imageUrl: string;
-  imageHint: string;
-  neutralizedImageUrl?: string;
-  neutralizedImageHint?: string;
-  reportedBy: string;
-  userAvatarUrl?: string;
-  userAvatarHint?: string;
+  originalImageUrl: string; // URL or data URI
+  
+  // AI Classification fields
+  speciesType: 'Aedes aegypti' | 'Culex' | 'Unknown';
+  confidenceScore: number;
+  riskLevel: number; // 1-10
+  
+  // AI Report fields
+  reportEnglish?: string;
+  reportSinhala?: string;
+  reportTamil?: string;
+  
+  // Status
+  isNeutralized: boolean;
+  
+  // Uploader info
+  uploaderId: string;
+  uploaderName: string;
+  uploaderAvatarUrl?: string;
 };
+
 
 export type District = {
   name: string;
@@ -58,7 +70,7 @@ export type NeutralizationVerification = {
   id?: string; // Optional because Firestore generates it.
   surveillanceSampleId: string;
   originalImageUrl: string;
-  verificationImageUrl: string;
+  verificationImageUrl: string; // URL or Data URI
   verificationTimestamp: string;
   isVerifiedByAI: boolean;
   aiReason: string;

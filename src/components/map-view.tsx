@@ -1,7 +1,8 @@
+
 'use client';
 
 import { MapContainer, TileLayer, Marker, useMap, Popup } from 'react-leaflet';
-import type { SurveillanceReport } from '@/lib/types';
+import type { SurveillanceSample } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import 'leaflet/dist/leaflet.css';
 import { divIcon, type LatLng, type LocationEvent } from 'leaflet';
@@ -58,7 +59,7 @@ function getBearing(start: { lat: number; lng: number }, end: { lat: number; lng
 // === CHILD COMPONENTS ===
 
 type MapViewProps = {
-  reports: SurveillanceReport[];
+  reports: SurveillanceSample[];
   center?: { lat: number; lng: number };
   zoom?: number;
 };
@@ -138,12 +139,12 @@ export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom 
 
   const [userPosition, setUserPosition] = useState<LatLng | null>(null);
   const [heading, setHeading] = useState<number | null>(null);
-  const [nearbySite, setNearbySite] = useState<{ report: SurveillanceReport, distance: number } | null>(null);
+  const [nearbySite, setNearbySite] = useState<{ report: SurveillanceSample, distance: number } | null>(null);
   const [bearing, setBearing] = useState<number>(0);
 
   // Find the first high-risk, active report to center the map on.
   const highRiskReport = reports.find(r => !r.isNeutralized && r.riskLevel > 8);
-  const initialCenter = highRiskReport ? highRiskReport.location : center;
+  const initialCenter = highRiskReport ? { lat: highRiskReport.latitude, lng: highRiskReport.longitude } : center;
   const initialZoom = highRiskReport ? 13 : zoom;
   
   const [mapCenter, setMapCenter] = useState(initialCenter);
@@ -184,12 +185,12 @@ export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom 
   useEffect(() => {
     if (!userPosition) return;
 
-    let closestSite: { report: SurveillanceReport, distance: number } | null = null;
+    let closestSite: { report: SurveillanceSample, distance: number } | null = null;
 
     for (const report of reports) {
       if (report.isNeutralized) continue;
       
-      const distance = getDistance(userPosition, report.location);
+      const distance = getDistance(userPosition, { lat: report.latitude, lng: report.longitude });
       if (distance < 50) { // Check if within 50 meters
         if (!closestSite || distance < closestSite.distance) {
           closestSite = { report, distance };
@@ -199,7 +200,7 @@ export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom 
     setNearbySite(closestSite);
 
     if (closestSite && heading !== null) {
-      const siteBearing = getBearing(userPosition, closestSite.report.location);
+      const siteBearing = getBearing(userPosition, { lat: closestSite.report.latitude, lng: closestSite.report.longitude });
       // Adjust bearing relative to the device's heading
       setBearing(siteBearing - heading);
     }
@@ -281,13 +282,12 @@ export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom 
                     />
                     <UserLocationMarker onLocationFound={handleLocationFound} />
                     {reports.map((report) => (
-                    <Marker key={report.id} position={report.location} icon={getMarkerIcon(report.riskLevel, report.isNeutralized)}>
+                    <Marker key={report.id} position={{ lat: report.latitude, lng: report.longitude }} icon={getMarkerIcon(report.riskLevel, report.isNeutralized)}>
                         <Popup minWidth={250}>
                             <div className="space-y-3">
                                 <Image
-                                    src={report.imageUrl}
+                                    src={report.originalImageUrl}
                                     alt={report.habitatDescription}
-                                    data-ai-hint={report.imageHint}
                                     width={400}
                                     height={300}
                                     className="rounded-md object-cover w-full h-auto"
@@ -298,13 +298,13 @@ export function MapView({ reports, center = { lat: 7.8731, lng: 80.7718 }, zoom 
                                 </div>
                                 <div className="flex items-center gap-2 pt-2 border-t">
                                     <Avatar className="h-8 w-8">
-                                        <AvatarImage src={report.userAvatarUrl} alt={report.reportedBy} data-ai-hint={report.userAvatarHint} />
-                                        <AvatarFallback>{report.reportedBy.charAt(0)}</AvatarFallback>
+                                        <AvatarImage src={report.uploaderAvatarUrl} alt={report.uploaderName} />
+                                        <AvatarFallback>{report.uploaderName?.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <div>
-                                        <p className="text-xs font-semibold">{report.reportedBy}</p>
+                                        <p className="text-xs font-semibold">{report.uploaderName}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            Reported {formatDistanceToNow(new Date(report.reportedAt), { addSuffix: true })}
+                                            Reported {formatDistanceToNow(new Date(report.timestamp), { addSuffix: true })}
                                         </p>
                                     </div>
                                 </div>

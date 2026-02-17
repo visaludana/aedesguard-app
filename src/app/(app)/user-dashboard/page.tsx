@@ -1,8 +1,10 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getReports } from '@/lib/data';
-import type { SurveillanceReport } from '@/lib/types';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import type { SurveillanceSample } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { MapPin, Locate, Loader2 } from 'lucide-react';
 import ClientMap from '@/components/client-map';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * Calculates distance between two lat/lng coordinates in meters.
@@ -44,55 +47,55 @@ function StatusBadge({ isNeutralized }: { isNeutralized: boolean }) {
 }
 
 export default function UserDashboardPage() {
-    const [allReports, setAllReports] = useState<SurveillanceReport[]>([]);
-    const [nearbyReports, setNearbyReports] = useState<SurveillanceReport[]>([]);
+    const { firestore } = useFirebase();
+    const [nearbyReports, setNearbyReports] = useState<SurveillanceSample[]>([]);
     const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingLocation, setIsLoadingLocation] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        getReports().then(reports => {
-            setAllReports(reports);
-            // Initial find is triggered via the other useEffect
-        });
-    }, []);
+    const reportsQuery = useMemoFirebase(
+      () => (firestore ? query(collection(firestore, 'surveillanceSamples'), orderBy('timestamp', 'desc')) : null),
+      [firestore]
+    );
+    const { data: allReports, isLoading: isLoadingReports } = useCollection<SurveillanceSample>(reportsQuery);
 
     const findNearbyReports = () => {
         if (!navigator.geolocation) {
             setError("Geolocation is not supported by your browser.");
-            setIsLoading(false);
+            setIsLoadingLocation(false);
             return;
         }
 
-        setIsLoading(true);
+        setIsLoadingLocation(true);
         setError(null);
         navigator.geolocation.getCurrentPosition(position => {
             const { latitude, longitude } = position.coords;
             const currentLocation = { lat: latitude, lng: longitude };
             setUserLocation(currentLocation);
 
-            if (allReports.length > 0) {
+            if (allReports) {
                  const nearby = allReports.filter(report => {
-                    const distance = getDistance(currentLocation, report.location);
+                    const distance = getDistance(currentLocation, { lat: report.latitude, lng: report.longitude });
                     return distance <= 500; // 500 meters radius
                 });
                 setNearbyReports(nearby);
             }
-            setIsLoading(false);
+            setIsLoadingLocation(false);
         }, (error) => {
             console.error("Error getting user location", error);
             setError("Could not get your location. Please ensure location services are enabled for this site.");
-            setIsLoading(false);
+            setIsLoadingLocation(false);
         });
     };
     
-    // Find reports once allReports are loaded
     useEffect(() => {
-        if (allReports.length > 0) {
+        if (allReports) {
             findNearbyReports();
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [allReports]);
+
+    const isLoading = isLoadingReports || isLoadingLocation;
 
     return (
     <div className="space-y-6">
@@ -103,16 +106,17 @@ export default function UserDashboardPage() {
                     <CardTitle>Nearby Breeding Sites (500m)</CardTitle>
                     <CardDescription>A list of reported breeding sites near your current location.</CardDescription>
                 </div>
-                <Button onClick={findNearbyReports} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Locate className="mr-2 h-4 w-4" />}
+                <Button onClick={findNearbyReports} disabled={isLoadingLocation}>
+                    {isLoadingLocation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Locate className="mr-2 h-4 w-4" />}
                     Refresh Location
                 </Button>
             </CardHeader>
             <CardContent>
                  {isLoading ? (
-                    <div className="text-center py-10">
-                        <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
-                        <p className="mt-4 text-muted-foreground">Finding nearby reports...</p>
+                    <div className="space-y-2">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
                     </div>
                  ) : error ? (
                     <div className="text-center text-destructive py-10 border-2 border-dashed border-destructive/50 rounded-lg">
@@ -132,19 +136,19 @@ export default function UserDashboardPage() {
                             </TableRow>
                             </TableHeader>
                             <TableBody>
-                            {nearbyReports.map((report: SurveillanceReport) => (
+                            {nearbyReports.map((report: SurveillanceSample) => (
                                 <TableRow key={report.id}>
                                 <TableCell className="font-medium">{report.locationName}</TableCell>
                                 <TableCell>
                                     <Badge variant={getRiskBadgeVariant(report.riskLevel)}>{report.riskLevel}/10</Badge>
                                 </TableCell>
-                                <TableCell>{format(new Date(report.reportedAt), 'PPP')}</TableCell>
+                                <TableCell>{format(new Date(report.timestamp), 'PPP')}</TableCell>
                                 <TableCell>
                                     <StatusBadge isNeutralized={report.isNeutralized} />
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <Button asChild variant="outline" size="sm">
-                                        <Link href={`https://www.google.com/maps/dir/?api=1&destination=${report.location.lat},${report.location.lng}`} target="_blank" rel="noopener noreferrer">
+                                        <Link href={`https://www.google.com/maps/dir/?api=1&destination=${report.latitude},${report.longitude}`} target="_blank" rel="noopener noreferrer">
                                             <MapPin className="mr-2 h-4 w-4" />
                                             Get Directions
                                         </Link>

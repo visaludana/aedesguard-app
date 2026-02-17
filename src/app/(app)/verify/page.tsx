@@ -1,12 +1,17 @@
-import { getReports } from '@/lib/data';
-import type { SurveillanceReport } from '@/lib/types';
+
+'use client';
+
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import type { SurveillanceSample } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function getRiskBadgeVariant(riskLevel: number): 'destructive' | 'secondary' | 'default' {
   if (riskLevel > 8) return 'destructive';
@@ -21,8 +26,13 @@ function StatusBadge({ isNeutralized }: { isNeutralized: boolean }) {
   return <Badge variant="destructive">Active</Badge>;
 }
 
-export default async function VerifyPage() {
-  const reports = await getReports();
+export default function VerifyPage() {
+  const { firestore } = useFirebase();
+  const reportsQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'surveillanceSamples'), orderBy('timestamp', 'desc')) : null),
+    [firestore]
+  );
+  const { data: reports, isLoading } = useCollection<SurveillanceSample>(reportsQuery);
 
   return (
     <Card>
@@ -38,7 +48,7 @@ export default async function VerifyPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Location</TableHead>
-                <TableHead>Genus</TableHead>
+                <TableHead>Species</TableHead>
                 <TableHead>Risk Level</TableHead>
                 <TableHead>Reported On</TableHead>
                 <TableHead>Status</TableHead>
@@ -46,14 +56,21 @@ export default async function VerifyPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reports.map((report: SurveillanceReport) => (
+              {isLoading && (
+                <>
+                  <TableRow><TableCell colSpan={6}><Skeleton className="h-8" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6}><Skeleton className="h-8" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6}><Skeleton className="h-8" /></TableCell></TableRow>
+                </>
+              )}
+              {reports && reports.map((report: SurveillanceSample) => (
                 <TableRow key={report.id}>
                   <TableCell className="font-medium">{report.locationName}</TableCell>
-                  <TableCell>{report.larvaeGenus}</TableCell>
+                  <TableCell>{report.speciesType}</TableCell>
                   <TableCell>
                     <Badge variant={getRiskBadgeVariant(report.riskLevel)}>{report.riskLevel}/10</Badge>
                   </TableCell>
-                  <TableCell>{format(new Date(report.reportedAt), 'PPP')}</TableCell>
+                  <TableCell>{format(new Date(report.timestamp), 'PPP')}</TableCell>
                   <TableCell>
                     <StatusBadge isNeutralized={report.isNeutralized} />
                   </TableCell>
@@ -69,6 +86,11 @@ export default async function VerifyPage() {
               ))}
             </TableBody>
           </Table>
+          {!isLoading && (!reports || reports.length === 0) && (
+            <div className="text-center p-8 text-muted-foreground">
+              No surveillance reports found.
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

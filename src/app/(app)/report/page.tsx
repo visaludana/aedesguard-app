@@ -1,7 +1,7 @@
+
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
-import { reportBreedingSite } from './actions';
+import { useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,8 +13,12 @@ import React, { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const initialState = {};
+import { useFirebase, errorEmitter } from '@/firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { generateRiskReport } from '@/ai/flows/generate-risk-report';
+import { generateLocalizedSafetyAdvice } from '@/ai/flows/generate-localized-safety-advice';
+import type { SurveillanceSample } from '@/lib/types';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 // Dynamically import the map component
 const ReportLocationMap = dynamic(() => import('@/components/report-location-map').then(mod => mod.ReportLocationMap), {
@@ -22,24 +26,39 @@ const ReportLocationMap = dynamic(() => import('@/components/report-location-map
   loading: () => <Skeleton className="h-[300px] w-full rounded-lg" />
 });
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending} className="w-full md:w-auto">
-      {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Submit Report
-    </Button>
-  );
+function bufferToDataURI(buffer: ArrayBuffer, mimeType: string): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return `data:${mimeType};base64,${btoa(binary)}`;
 }
 
+type FormState = {
+  message?: string;
+  riskReport?: {
+    sinhalaReport: string;
+    tamilReport: string;
+    englishReport: string;
+  };
+  safetyAdvice?: string;
+  error?: string;
+};
+
 export default function ReportPage() {
-  const [state, formAction] = useFormState(reportBreedingSite, initialState);
+  const { firestore, user } = useFirebase();
+  
+  const [state, setState] = useState<FormState>({});
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [location, setLocation] = useState({ lat: 7.8731, lng: 80.7718 }); // Default to Sri Lanka center
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -48,9 +67,104 @@ export default function ReportPage() {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setState({});
+    setIsSubmitting(true);
+
+    if (!user || !firestore) {
+      setState({ error: "You must be logged in to submit a report." });
+      setIsSubmitting(false);
+      return;
+    }
+    if (!imageFile) {
+        setState({ error: "Please upload an image." });
+        setIsSubmitting(false);
+        return;
+    }
+
+    const formData = new FormData(e.currentTarget);
+    const habitatDescription = formData.get('habitatDescription') as string;
+    const locationName = formData.get('locationName') as string;
+    const language = formData.get('language') as 'Sinhala' | 'Tamil' | 'English';
+    const lat = parseFloat(formData.get('lat') as string);
+    const lng = parseFloat(formData.get('lng') as string);
+
+    if (!habitatDescription || !locationName || !language || !lat || !lng) {
+        setState({ error: "Please fill out all fields." });
+        setIsSubmitting(false);
+        return;
+    }
+
+    const surroundingsDescription = `${habitatDescription} near ${locationName}. Coordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+    try {
+        const mockClassification = {
+            speciesType: 'Aedes aegypti',
+            confidenceScore: 0.92,
+        };
+
+        const [riskReport, safetyAdviceResult] = await Promise.all([
+            generateRiskReport({
+                ...mockClassification,
+                habitatDescription: surroundingsDescription,
+            }),
+            generateLocalizedSafetyAdvice({
+                surroundingsDescription: surroundingsDescription,
+                preferredLanguage: language,
+            }),
+        ]);
+
+        const imageBuffer = await imageFile.arrayBuffer();
+        const imageDataUri = bufferToDataURI(imageBuffer, imageFile.type);
+
+        const newReport: Omit<SurveillanceSample, 'id'> = {
+            timestamp: new Date().toISOString(),
+            latitude: lat,
+            longitude: lng,
+            originalImageUrl: imageDataUri, // Saving as data URI for demo purposes
+            speciesType: mockClassification.speciesType,
+            confidenceScore: mockClassification.confidenceScore,
+            habitatDescription: habitatDescription,
+            locationName: locationName,
+            riskLevel: Math.floor(Math.random() * 5) + 5, // Random risk from 5-9
+            isNeutralized: false,
+            reportEnglish: riskReport.englishReport,
+            reportSinhala: riskReport.sinhalaReport,
+            reportTamil: riskReport.tamilReport,
+            uploaderId: user.uid,
+            uploaderName: user.displayName || 'Anonymous',
+            uploaderAvatarUrl: user.photoURL || '',
+        };
+
+        const reportsCol = collection(firestore, 'surveillanceSamples');
+        await addDoc(reportsCol, newReport).catch(err => {
+            const contextualError = new FirestorePermissionError({
+                operation: 'create',
+                path: reportsCol.path,
+                requestResourceData: newReport,
+            });
+            errorEmitter.emit('permission-error', contextualError);
+            throw new Error("Failed to save report to database. You may not have permissions.");
+        });
+
+        setState({
+            message: 'Report submitted successfully. AI analysis complete.',
+            riskReport,
+            safetyAdvice: safetyAdviceResult.safetyAdvice,
+        });
+
+    } catch (e: any) {
+        console.error(e);
+        setState({ error: e.message || 'Failed to process report. The AI service may be unavailable.' });
+    } finally {
+        setIsSubmitting(false);
+    }
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <form action={formAction} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Report a Breeding Site</CardTitle>
@@ -115,7 +229,10 @@ export default function ReportPage() {
             </div>
           </CardContent>
           <CardFooter>
-            <SubmitButton />
+            <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Submit Report
+            </Button>
           </CardFooter>
         </Card>
       </form>

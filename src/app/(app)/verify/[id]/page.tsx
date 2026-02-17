@@ -2,11 +2,9 @@
 'use client';
 
 import { notFound } from 'next/navigation';
-import { getReportById } from '@/lib/data';
 import React, { useEffect, useState, useRef } from 'react';
-import type { SurveillanceReport, NeutralizationVerification } from '@/lib/types';
-import { useFirebase } from '@/firebase';
-import { collection, addDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { verifyBreedingSiteNeutralization } from '@/ai/flows/verify-breeding-site-neutralization';
 
 import Image from 'next/image';
@@ -17,22 +15,29 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Camera, CheckCircle, Loader2, Upload, XCircle, ShieldQuestion } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import type { SurveillanceSample, NeutralizationVerification } from '@/lib/types';
 
 
 // Helper to convert a file buffer to a data URI
 function bufferToDataURI(buffer: ArrayBuffer, mimeType: string): string {
-    const base64String = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-    return `data:${mimeType};base64,${base64String}`;
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return `data:${mimeType};base64,${btoa(binary)}`;
 }
 
 
 export default function VerifyDetailPage({ params }: { params: { id: string } }) {
-  const [report, setReport] = useState<SurveillanceReport | null | undefined>(undefined);
   const [afterImagePreview, setAfterImagePreview] = useState<string | null>(null);
   const [afterImageFile, setAfterImageFile] = useState<File | null>(null);
 
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
+
+  const reportRef = useMemoFirebase(() => (firestore ? doc(firestore, 'surveillanceSamples', params.id) : null), [firestore, params.id]);
+  const { data: report, isLoading: isLoadingReport } = useDoc<SurveillanceSample>(reportRef);
 
   // State for the verification process
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,11 +50,7 @@ export default function VerifyDetailPage({ params }: { params: { id: string } })
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hiddenDataUriRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    getReportById(params.id).then(setReport);
-  }, [params.id]);
-
+  
   useEffect(() => {
     if (!showCamera) return;
     const getCameraPermission = async () => {
@@ -76,7 +77,7 @@ export default function VerifyDetailPage({ params }: { params: { id: string } })
     };
   }, [showCamera]);
 
-  if (report === undefined) {
+  if (isLoadingReport) {
     return (
         <div className="grid gap-6 md:grid-cols-2">
             <Card><CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader><CardContent><Skeleton className="h-64 w-full" /></CardContent></Card>
@@ -85,17 +86,17 @@ export default function VerifyDetailPage({ params }: { params: { id: string } })
     );
   }
 
-  if (report === null) {
+  if (!report) {
     notFound();
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setAfterImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setAfterImagePreview(reader.result as string);
-        setAfterImageFile(file);
         hiddenDataUriRef.current = null;
       };
       reader.readAsDataURL(file);
@@ -154,13 +155,13 @@ export default function VerifyDetailPage({ params }: { params: { id: string } })
         }
 
         const aiResult = await verifyBreedingSiteNeutralization({
-            beforePhotoUrl: report.imageUrl,
+            beforePhotoUrl: report.originalImageUrl,
             afterPhotoDataUri,
         });
 
-        const verificationData: NeutralizationVerification = {
+        const verificationData: Omit<NeutralizationVerification, 'id'> = {
             surveillanceSampleId: report.id,
-            originalImageUrl: report.imageUrl,
+            originalImageUrl: report.originalImageUrl,
             verificationImageUrl: afterPhotoDataUri, // In a real app, upload this to storage and save URL
             verificationTimestamp: new Date().toISOString(),
             isVerifiedByAI: aiResult.isNeutralized,
@@ -173,9 +174,8 @@ export default function VerifyDetailPage({ params }: { params: { id: string } })
         
         const verificationDocRef = await addDoc(collection(firestore, 'neutralizationVerifications'), verificationData);
 
-        if (aiResult.isNeutralized) {
-            const reportDocRef = doc(firestore, 'surveillanceSamples', report.id);
-            await updateDoc(reportDocRef, { isNeutralized: true });
+        if (aiResult.isNeutralized && reportRef) {
+            await updateDoc(reportRef, { isNeutralized: true });
         }
         
         setResult({ ...aiResult, verificationId: verificationDocRef.id, appealStatus: 'none' });
@@ -219,9 +219,8 @@ export default function VerifyDetailPage({ params }: { params: { id: string } })
           </CardHeader>
           <CardContent>
             <Image
-              src={report.imageUrl}
+              src={report.originalImageUrl}
               alt="Before neutralization"
-              data-ai-hint={report.imageHint}
               width={800}
               height={600}
               className="rounded-lg object-cover w-full aspect-video"
