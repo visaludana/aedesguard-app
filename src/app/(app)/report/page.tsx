@@ -15,8 +15,7 @@ import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFirebase, errorEmitter } from '@/firebase';
 import { addDoc, collection } from 'firebase/firestore';
-import { generateRiskReport } from '@/ai/flows/generate-risk-report';
-import { generateLocalizedSafetyAdvice } from '@/ai/flows/generate-localized-safety-advice';
+import { generateReportAndAdvice } from '@/ai/flows/generate-report-and-advice';
 import type { SurveillanceSample } from '@/lib/types';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { classifyLarvae, ClassifyLarvaeOutput } from '@/ai/flows/classify-larvae';
@@ -153,17 +152,12 @@ export default function ReportPage() {
         const lng = parseFloat(formData.get('lng') as string);
         const surroundingsDescription = `${habitatDescription} near ${locationName}. Coordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 
-        const [riskReport, safetyAdviceResult] = await Promise.all([
-            generateRiskReport({
-                speciesType: aiResult.speciesType,
-                confidenceInterval: aiResult.confidenceScore,
-                habitatDescription: surroundingsDescription,
-            }),
-            generateLocalizedSafetyAdvice({
-                surroundingsDescription: surroundingsDescription,
-                preferredLanguage: language,
-            }),
-        ]);
+        const reportAndAdvice = await generateReportAndAdvice({
+            speciesType: aiResult.speciesType,
+            confidenceScore: aiResult.confidenceScore,
+            habitatDescription: surroundingsDescription,
+            preferredLanguage: language,
+        });
 
         let imageDataUri: string;
         if (capturedImageDataUri.current) {
@@ -186,9 +180,9 @@ export default function ReportPage() {
             locationName: locationName,
             riskLevel: appealStatus === 'pending' ? 5 : Math.floor(Math.random() * 5) + 5, // Assign a moderate base risk for appealed, random for verified
             isNeutralized: false,
-            reportEnglish: riskReport.englishReport,
-            reportSinhala: riskReport.sinhalaReport,
-            reportTamil: riskReport.tamilReport,
+            reportEnglish: reportAndAdvice.englishReport,
+            reportSinhala: reportAndAdvice.sinhalaReport,
+            reportTamil: reportAndAdvice.tamilReport,
             uploaderId: user.uid,
             uploaderName: user.displayName || 'Anonymous',
             uploaderAvatarUrl: user.photoURL || '',
@@ -208,7 +202,14 @@ export default function ReportPage() {
             throw new Error("Failed to save report to database. You may not have permissions.");
         });
 
-        return { riskReport, safetyAdvice: safetyAdviceResult.safetyAdvice };
+        return { 
+            riskReport: {
+                englishReport: reportAndAdvice.englishReport,
+                sinhalaReport: reportAndAdvice.sinhalaReport,
+                tamilReport: reportAndAdvice.tamilReport,
+            },
+            safetyAdvice: reportAndAdvice.safetyAdvice
+        };
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
