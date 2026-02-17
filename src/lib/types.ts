@@ -1,3 +1,4 @@
+
 export type SurveillanceReport = {
   id: string;
   location: { lat: number; lng: number; };
@@ -51,4 +52,18 @@ export type UserProfile = {
   photoURL?: string;
   idNumber?: string;
   mobileNumber?: string;
+};
+
+export type NeutralizationVerification = {
+  id?: string; // Optional because Firestore generates it.
+  surveillanceSampleId: string;
+  originalImageUrl: string;
+  verificationImageUrl: string;
+  verificationTimestamp: string;
+  isVerifiedByAI: boolean;
+  aiReason: string;
+  verifierId: string;
+  verifierName: string;
+  pointsAwarded: number;
+  appealStatus: 'pending' | 'approved' | 'rejected' | 'none';
 };

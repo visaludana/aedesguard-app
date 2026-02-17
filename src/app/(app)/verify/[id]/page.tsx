@@ -1,44 +1,50 @@
+
 'use client';
 
 import { notFound } from 'next/navigation';
 import { getReportById } from '@/lib/data';
-import React, { useEffect, useState } from 'react';
-import type { SurveillanceReport } from '@/lib/types';
+import React, { useEffect, useState, useRef } from 'react';
+import type { SurveillanceReport, NeutralizationVerification } from '@/lib/types';
+import { useFirebase } from '@/firebase';
+import { collection, addDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { verifyBreedingSiteNeutralization } from '@/ai/flows/verify-breeding-site-neutralization';
+
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Camera, CheckCircle, Loader2, Upload, XCircle } from 'lucide-react';
-import { useFormState, useFormStatus } from 'react-dom';
-import { verifyNeutralization } from './actions';
+import { Camera, CheckCircle, Loader2, Upload, XCircle, ShieldQuestion } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
-const initialState = {};
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Verify Neutralization
-    </Button>
-  );
+// Helper to convert a file buffer to a data URI
+function bufferToDataURI(buffer: ArrayBuffer, mimeType: string): string {
+    const base64String = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    return `data:${mimeType};base64,${base64String}`;
 }
+
 
 export default function VerifyDetailPage({ params }: { params: { id: string } }) {
   const [report, setReport] = useState<SurveillanceReport | null | undefined>(undefined);
   const [afterImagePreview, setAfterImagePreview] = useState<string | null>(null);
-  const [state, formAction] = useFormState(verifyNeutralization, initialState);
+  const [afterImageFile, setAfterImageFile] = useState<File | null>(null);
+
+  const { firestore, user } = useFirebase();
+  const { toast } = useToast();
+
+  // State for the verification process
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{ isNeutralized: boolean; reason: string; verificationId?: string; appealStatus?: NeutralizationVerification['appealStatus'] } | null>(null);
 
   // State for camera functionality
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [showCamera, setShowCamera] = useState(false);
-  const videoRef = React.useRef<HTMLVideoElement>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const hiddenDataUriInputRef = React.useRef<HTMLInputElement>(null);
-
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const hiddenDataUriRef = useRef<string | null>(null);
 
   useEffect(() => {
     getReportById(params.id).then(setReport);
@@ -46,7 +52,6 @@ export default function VerifyDetailPage({ params }: { params: { id: string } })
 
   useEffect(() => {
     if (!showCamera) return;
-
     const getCameraPermission = async () => {
       try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -62,9 +67,7 @@ export default function VerifyDetailPage({ params }: { params: { id: string } })
         setHasCameraPermission(false);
       }
     };
-
     getCameraPermission();
-
     return () => {
         if (videoRef.current && videoRef.current.srcObject) {
             const stream = videoRef.current.srcObject as MediaStream;
@@ -72,7 +75,6 @@ export default function VerifyDetailPage({ params }: { params: { id: string } })
         }
     };
   }, [showCamera]);
-
 
   if (report === undefined) {
     return (
@@ -93,9 +95,8 @@ export default function VerifyDetailPage({ params }: { params: { id: string } })
       const reader = new FileReader();
       reader.onloadend = () => {
         setAfterImagePreview(reader.result as string);
-        if (hiddenDataUriInputRef.current) {
-          hiddenDataUriInputRef.current.value = ''; // Clear the data URI if a file is uploaded
-        }
+        setAfterImageFile(file);
+        hiddenDataUriRef.current = null;
       };
       reader.readAsDataURL(file);
     }
@@ -103,7 +104,6 @@ export default function VerifyDetailPage({ params }: { params: { id: string } })
 
   const handleTakePhoto = () => {
     if (!videoRef.current) return;
-    
     const canvas = document.createElement('canvas');
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
@@ -112,27 +112,102 @@ export default function VerifyDetailPage({ params }: { params: { id: string } })
         context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
         const dataUri = canvas.toDataURL('image/jpeg');
         setAfterImagePreview(dataUri);
-        
-        if (hiddenDataUriInputRef.current) {
-          hiddenDataUriInputRef.current.value = dataUri;
-        }
-        if (fileInputRef.current) {
-          fileInputRef.current.value = ''; // Clear the file input
-        }
-        setShowCamera(false); // Hide camera after taking photo
+        hiddenDataUriRef.current = dataUri;
+        setAfterImageFile(null);
+        setShowCamera(false);
     }
   };
 
   const clearPreview = () => {
     setAfterImagePreview(null);
-    if (hiddenDataUriInputRef.current) {
-        hiddenDataUriInputRef.current.value = '';
-    }
+    setAfterImageFile(null);
+    hiddenDataUriRef.current = null;
     if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      fileInputRef.current.value = '';
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!afterImageFile && !hiddenDataUriRef.current) {
+        setError("An 'after' image is required. Please upload or take a photo.");
+        return;
+    }
+    if (!firestore || !user) {
+        setError("You must be logged in to verify a site.");
+        return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    setResult(null);
+
+    try {
+        let afterPhotoDataUri: string;
+        if (hiddenDataUriRef.current) {
+            afterPhotoDataUri = hiddenDataUriRef.current;
+        } else if (afterImageFile) {
+            const arrayBuffer = await afterImageFile.arrayBuffer();
+            afterPhotoDataUri = bufferToDataURI(arrayBuffer, afterImageFile.type);
+        } else {
+            throw new Error("No 'after' image provided.");
+        }
+
+        const aiResult = await verifyBreedingSiteNeutralization({
+            beforePhotoUrl: report.imageUrl,
+            afterPhotoDataUri,
+        });
+
+        const verificationData: NeutralizationVerification = {
+            surveillanceSampleId: report.id,
+            originalImageUrl: report.imageUrl,
+            verificationImageUrl: afterPhotoDataUri, // In a real app, upload this to storage and save URL
+            verificationTimestamp: new Date().toISOString(),
+            isVerifiedByAI: aiResult.isNeutralized,
+            aiReason: aiResult.reason,
+            verifierId: user.uid,
+            verifierName: user.displayName || "Anonymous",
+            pointsAwarded: aiResult.isNeutralized ? 10 : 0,
+            appealStatus: 'none',
+        };
+        
+        const verificationDocRef = await addDoc(collection(firestore, 'neutralizationVerifications'), verificationData);
+
+        if (aiResult.isNeutralized) {
+            const reportDocRef = doc(firestore, 'surveillanceSamples', report.id);
+            await updateDoc(reportDocRef, { isNeutralized: true });
+        }
+        
+        setResult({ ...aiResult, verificationId: verificationDocRef.id, appealStatus: 'none' });
+
+    } catch (err: any) {
+        console.error(err);
+        setError("AI verification failed. The service is unavailable or an error occurred.");
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+  const handleAppeal = async () => {
+      if (!result?.verificationId || !firestore) return;
+      
+      const verificationDocRef = doc(firestore, 'neutralizationVerifications', result.verificationId);
+      try {
+          await updateDoc(verificationDocRef, { appealStatus: 'pending' });
+          setResult(prev => prev ? {...prev, appealStatus: 'pending'} : null);
+          toast({
+              title: "Appeal Submitted",
+              description: "A health officer will review your verification."
+          });
+      } catch (err) {
+          console.error("Failed to submit appeal:", err);
+          toast({
+              variant: "destructive",
+              title: "Appeal Failed",
+              description: "Could not submit your appeal. Please try again later."
+          })
+      }
+  };
 
   return (
     <div className="space-y-6">
@@ -154,16 +229,13 @@ export default function VerifyDetailPage({ params }: { params: { id: string } })
           </CardContent>
         </Card>
 
-        <form action={formAction}>
-          <input type="hidden" name="reportId" value={report.id} />
-           <input type="hidden" name="afterImageDataUri" ref={hiddenDataUriInputRef} />
+        <form onSubmit={handleSubmit}>
           <Card>
             <CardHeader>
               <CardTitle>After Neutralization</CardTitle>
               <CardDescription>Provide a photo of the site after cleaning.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              
                {showCamera ? (
                   <div className="space-y-4">
                     <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted playsInline />
@@ -215,32 +287,47 @@ export default function VerifyDetailPage({ params }: { params: { id: string } })
                     </div>
                   </div>
                 )}
-                {/* Hidden file input, controlled by the "Upload File" button */}
                 <Input id="afterImage" name="afterImage" type="file" accept="image/*" onChange={handleFileChange} className="hidden" ref={fileInputRef} />
             </CardContent>
             <CardFooter>
-              <SubmitButton />
+              <Button type="submit" disabled={isSubmitting || !!result}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Verify Neutralization
+              </Button>
             </CardFooter>
           </Card>
         </form>
       </div>
       
-      {state.message && (
-        <Alert variant={state.isNeutralized ? 'default' : 'destructive'} className={state.isNeutralized ? 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800' : ''}>
-            {state.isNeutralized ? <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" /> : <XCircle className="h-4 w-4" />}
-            <AlertTitle className={state.isNeutralized ? 'text-green-800 dark:text-green-300' : ''}>
-                {state.isNeutralized ? 'Verification Successful: Site Neutralized' : 'Verification Failed: Site Not Neutralized'}
+      {result && (
+        <Alert variant={result.isNeutralized ? 'default' : 'destructive'} className={result.isNeutralized ? 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800' : ''}>
+            {result.isNeutralized ? <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" /> : <XCircle className="h-4 w-4" />}
+            <AlertTitle className={result.isNeutralized ? 'text-green-800 dark:text-green-300' : ''}>
+                {result.isNeutralized ? 'Verification Successful: Site Neutralized' : 'Verification Failed: Site Not Neutralized'}
             </AlertTitle>
-            <AlertDescription className={state.isNeutralized ? 'text-green-700 dark:text-green-400' : ''}>
-                <strong>AI Reason:</strong> {state.reason}
+            <AlertDescription className={cn('flex flex-col gap-4', result.isNeutralized ? 'text-green-700 dark:text-green-400' : '')}>
+                <span><strong>AI Reason:</strong> {result.reason}</span>
+                {!result.isNeutralized && (
+                    <div>
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={handleAppeal}
+                            disabled={result.appealStatus === 'pending'}
+                        >
+                           <ShieldQuestion className="mr-2 h-4 w-4" />
+                           {result.appealStatus === 'pending' ? 'Appeal Submitted for Review' : 'Appeal AI Decision'}
+                        </Button>
+                    </div>
+                )}
             </AlertDescription>
         </Alert>
       )}
-       {state.error && (
+       {error && (
         <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{state.error}</AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 

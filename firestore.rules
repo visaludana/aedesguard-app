@@ -121,7 +121,7 @@ service cloud.firestore {
     match /surveillanceSamples/{sampleId} {
       allow get, list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.uploaderId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.uploaderId) && request.resource.data.uploaderId == resource.data.uploaderId;
+      allow update: if isExistingOwner(resource.data.uploaderId) || isPhi();
       allow delete: if isExistingOwner(resource.data.uploaderId);
     }
 
@@ -148,9 +148,9 @@ service cloud.firestore {
      */
     match /neutralizationVerifications/{verificationId} {
       allow get: if (isOwner(resource.data.verifierId) && resource != null) || isPhi();
-      allow list: if isSignedIn();
+      allow list: if isPhi();
       allow create: if isSignedIn() && request.resource.data.verifierId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.verifierId) && request.resource.data.verifierId == resource.data.verifierId;
+      allow update: if (isExistingOwner(resource.data.verifierId) && request.resource.data.verifierId == resource.data.verifierId) || isPhi();
       allow delete: if isExistingOwner(resource.data.verifierId);
     }
   }
