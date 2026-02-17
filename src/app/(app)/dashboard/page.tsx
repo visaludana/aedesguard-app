@@ -1,14 +1,13 @@
-
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, where } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, ShieldAlert, Target } from 'lucide-react';
 import ClientMap from '@/components/client-map';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import DistrictRiskMap from '@/components/district-risk-map';
 import { getDistrictRisks } from '@/lib/db';
 import type { SurveillanceSample } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,6 +31,17 @@ function DashboardSkeleton() {
     </div>
   )
 }
+
+const DistrictRiskMap = dynamic(() => import('@/components/district-risk-map'), {
+  ssr: false,
+  loading: () => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Skeleton className="h-[460px] w-full" />
+      <Skeleton className="h-[460px] w-full" />
+    </div>
+  ),
+});
+
 
 export default function DashboardPage() {
   const { firestore } = useFirebase();
