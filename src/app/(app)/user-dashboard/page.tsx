@@ -52,6 +52,7 @@ export default function UserDashboardPage() {
     const [isLoadingLocation, setIsLoadingLocation] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // This query matches the security rules exactly.
     const reportsQuery = useMemoFirebase(
       () => (firestore ? query(
           collection(firestore, 'surveillanceSamples'), 

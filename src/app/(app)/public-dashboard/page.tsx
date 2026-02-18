@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -48,6 +47,7 @@ export default function PublicDashboardPage() {
   const { firestore } = useFirebase();
   const [cachedDistrictRisks, setCachedDistrictRisks] = React.useState<DistrictRisk[]>([]);
 
+  // Consistently query for public reports.
   const reportsQuery = useMemoFirebase(
     () => (firestore ? query(
         collection(firestore, 'surveillanceSamples'), 

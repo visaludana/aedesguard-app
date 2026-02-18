@@ -1,13 +1,6 @@
 /**
  * This ruleset enforces a security model based on user ownership and a dedicated
  * role-based access control (RBAC) system for Public Health Inspectors (PHIs).
- *
- * Core Philosophy:
- * The security model is designed for high performance and clarity by strictly
- * adhering to two main principles: Authorization Independence and Structural
- * Segregation. Authorization decisions rely on data denormalized directly onto
- * the documents being secured, avoiding slow and costly cross-document `get()`
- * calls in rules.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -27,7 +20,6 @@ service cloud.firestore {
 
     /**
      * Returns true if the user is a Public Health Inspector (PHI).
-     * Now includes a fallback for the hardcoded admin email used in the UI.
      */
     function isPhi() {
       return isSignedIn() && (
@@ -61,12 +53,14 @@ service cloud.firestore {
     }
 
     match /surveillanceSamples/{sampleId} {
-      // PHIs can read everything (including pending/appealed).
-      allow read: if isPhi();
-      
-      // All users (including public) can read approved or un-appealed samples.
-      // We use 'in' with a specific order that we'll match in the application code.
-      allow read: if resource.data.submissionAppealStatus in ['none', 'approved'];
+      // Unified read rule to satisfy query safety checks.
+      // Allows: 
+      // 1. PHIs to read everything.
+      // 2. Owners to read their own reports.
+      // 3. Anyone to read reports with 'none' or 'approved' appeal status.
+      allow read: if isPhi() || 
+                     (isSignedIn() && resource.data.uploaderId == request.auth.uid) || 
+                     (resource.data.submissionAppealStatus in ['none', 'approved']);
 
       allow create: if isSignedIn() && request.resource.data.uploaderId == request.auth.uid;
       allow update: if isExistingOwner(resource.data.uploaderId) || isPhi();
@@ -81,7 +75,7 @@ service cloud.firestore {
     }
 
     match /neutralizationVerifications/{verificationId} {
-      allow get: if (isOwner(resource.data.verifierId) && resource != null) || isPhi();
+      allow get: if (isSignedIn() && (resource.data.verifierId == request.auth.uid)) || isPhi();
       allow list: if isPhi();
       allow create: if isSignedIn() && request.resource.data.verifierId == request.auth.uid;
       allow update: if (isExistingOwner(resource.data.verifierId) && request.resource.data.verifierId == resource.data.verifierId) || isPhi();
