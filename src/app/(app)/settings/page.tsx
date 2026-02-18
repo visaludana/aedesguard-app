@@ -19,7 +19,7 @@ export default function SettingsPage() {
   const { auth, firestore, user, isUserLoading } = useFirebase();
   const { toast } = useToast();
   
-  const userProfileRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
+  const userProfileRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'userProfiles', user.uid) : null), [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
   const [displayName, setDisplayName] = useState('');
@@ -37,7 +37,6 @@ export default function SettingsPage() {
     if (userProfile) {
       setIdNumber(userProfile.idNumber || '');
       setMobileNumber(userProfile.mobileNumber || '');
-      // If display name or photoURL in firestore is more up-to-date, you could use it here.
       if (userProfile.displayName) setDisplayName(userProfile.displayName);
       if (userProfile.photoURL) setPhotoURL(userProfile.photoURL);
     }
@@ -59,7 +58,7 @@ export default function SettingsPage() {
         await updateProfile(user, updatedAuthProfile);
       }
 
-      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDocRef = doc(firestore, 'userProfiles', user.uid);
       const updatedFirestoreProfile: Partial<UserProfile> = {
         displayName,
         photoURL,

@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useFirebase, useUser, errorEmitter } from '@/firebase';
-import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,62 +37,12 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
-
-    useEffect(() => {
-    if (!auth || !firestore) {
-      setIsProcessingRedirect(false);
-      return;
-    }
-
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (result) {
-          // User has just signed in via redirect.
-          const user = result.user;
-          const userDocRef = doc(firestore, 'users', user.uid);
-          const docSnap = await getDoc(userDocRef);
-
-          if (!docSnap.exists()) {
-            const userProfile: UserProfile = {
-              id: user.uid,
-              displayName: user.displayName || 'Google User',
-              email: user.email!,
-              photoURL: user.photoURL || '',
-              points: 0,
-              lastActivityAt: new Date().toISOString(),
-            };
-            await setDoc(userDocRef, userProfile).catch(err => {
-              const contextualError = new FirestorePermissionError({
-                operation: 'create', path: userDocRef.path, requestResourceData: userProfile,
-              });
-              errorEmitter.emit('permission-error', contextualError);
-              throw new Error("Could not create user profile after Google sign-in.");
-            });
-          }
-          router.push('/user-dashboard');
-        } else {
-          // No redirect result, so not a sign-in redirect.
-          setIsProcessingRedirect(false);
-        }
-      })
-      .catch((error) => {
-        console.error("Error from getRedirectResult:", error);
-        if (error.code === 'auth/operation-not-allowed') {
-            setError('Google Sign-In is not enabled. Please contact an administrator.');
-        } else {
-            setError(error.message || "An error occurred during Google Sign-In.");
-        }
-        setIsProcessingRedirect(false);
-      });
-  }, [auth, firestore, router]);
-
 
   useEffect(() => {
-    if (user && !isUserLoading && !isProcessingRedirect) {
+    if (user && !isUserLoading) {
       router.push('/user-dashboard');
     }
-  }, [user, isUserLoading, isProcessingRedirect, router]);
+  }, [user, isUserLoading, router]);
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -121,7 +70,7 @@ export default function SignupPage() {
         lastActivityAt: new Date().toISOString(),
       };
 
-      const userDocRef = doc(firestore, 'users', newUser.uid);
+      const userDocRef = doc(firestore, 'userProfiles', newUser.uid);
       
       await setDoc(userDocRef, userProfile)
         .catch(err => {
@@ -148,17 +97,53 @@ export default function SignupPage() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!auth) {
-        setError("Authentication service is not available.");
+    if (!auth || !firestore) {
+        setError("Firebase services are not available.");
         return;
     }
     setError(null);
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
-    await signInWithRedirect(auth, provider);
+    
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const userDocRef = doc(firestore, 'userProfiles', user.uid);
+        const docSnap = await getDoc(userDocRef);
+
+        if (!docSnap.exists()) {
+            const userProfile: UserProfile = {
+                id: user.uid,
+                displayName: user.displayName || 'Google User',
+                email: user.email!,
+                photoURL: user.photoURL || '',
+                points: 0,
+                lastActivityAt: new Date().toISOString(),
+            };
+            await setDoc(userDocRef, userProfile).catch(err => {
+                const contextualError = new FirestorePermissionError({
+                    operation: 'create', path: userDocRef.path, requestResourceData: userProfile,
+                });
+                errorEmitter.emit('permission-error', contextualError);
+                throw new Error("Could not create user profile after Google sign-in.");
+            });
+        }
+        router.push('/user-dashboard');
+    } catch (error: any) {
+        console.error("Error during Google Sign-In:", error);
+        if (error.code === 'auth/operation-not-allowed') {
+            setError('Google Sign-In is not enabled. Please contact an administrator.');
+        } else if (error.code === 'auth/popup-closed-by-user') {
+            setError('Sign-in window was closed.');
+        } else {
+            setError(error.message || "An error occurred during Google Sign-In.");
+        }
+    } finally {
+        setIsGoogleLoading(false);
+    }
   };
   
-  if (isUserLoading || isProcessingRedirect) {
+  if (isUserLoading) {
     return (
         <div className="flex min-h-screen items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin" />
