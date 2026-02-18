@@ -42,7 +42,6 @@ function NeutralizationAppealsConsole() {
             if (decision === 'approved') {
                 const sampleRef = doc(firestore, 'surveillanceSamples', verification.surveillanceSampleId);
                 batch.update(sampleRef, { isNeutralized: true });
-                // In a real app, you would also award points to the verifier here.
             }
 
             await batch.commit();
@@ -93,7 +92,7 @@ function NeutralizationAppealsConsole() {
     }
 
     if (!appeals || appeals.length === 0) {
-        return null; // Don't render the card if there are no appeals
+        return null;
     }
 
     return (
@@ -217,7 +216,7 @@ function SubmissionAppealsConsole() {
     }
 
     if (!appeals || appeals.length === 0) {
-        return null; // Don't render the card if there are no appeals
+        return null;
     }
 
     return (
@@ -331,21 +330,7 @@ export default function AdminDashboardPage() {
     };
   }, [reports]);
   
-  if (role !== 'officer') {
-    return (
-        <div className="max-w-2xl mx-auto mt-10">
-            <Alert variant="destructive" >
-                <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Access Denied</AlertTitle>
-                <AlertDescription>
-                    You do not have permission to view this page. Please contact an administrator if you believe this is an error.
-                </AlertDescription>
-            </Alert>
-        </div>
-    );
-  }
-  
-  if ((isLoading && (!reports || reports.length === 0)) || role === 'loading') {
+  if (role === 'loading') {
     return (
         <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
@@ -359,28 +344,25 @@ export default function AdminDashboardPage() {
     )
   }
 
+  if (role !== 'officer') {
+    return (
+        <div className="max-w-2xl mx-auto mt-10">
+            <Alert variant="destructive" >
+                <ShieldAlert className="h-4 w-4" />
+                <AlertTitle>Access Denied</AlertTitle>
+                <AlertDescription>
+                    You do not have permission to view this page. Please contact an administrator if you believe this is an error.
+                </AlertDescription>
+            </Alert>
+        </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <SubmissionAppealsConsole />
       <NeutralizationAppealsConsole />
       
-      <Card>
-          <CardHeader>
-              <CardTitle>Appeals Consoles</CardTitle>
-              <CardDescription>
-                  Review user-submitted appeals for AI verification decisions.
-              </CardDescription>
-          </CardHeader>
-          <CardContent>
-              <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertTitle>No Pending Appeals</AlertTitle>
-                  <AlertDescription>There are currently no appeals to review in any category.</AlertDescription>
-              </Alert>
-          </CardContent>
-      </Card>
-
-
       {!reports || reports.length === 0 ? (
         <Card>
             <CardHeader>
@@ -416,7 +398,7 @@ export default function AdminDashboardPage() {
                     <CardContent>
                         <div className="text-4xl font-bold">{totalDeaths.toLocaleString()}</div>
                     </CardContent>
-                </Card>
+                </div>
             </div>
 
             <Card>

@@ -10,7 +10,7 @@ import { CheckCircle, ShieldAlert, Target } from 'lucide-react';
 import ClientMap from '@/components/client-map';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getDistrictRisks } from '@/lib/db';
-import type { SurveillanceSample } from '@/lib/types';
+import type { SurveillanceSample, DistrictRisk } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function getRiskBadgeVariant(riskLevel: number): 'destructive' | 'secondary' | 'default' {
@@ -46,7 +46,7 @@ const DistrictRiskMap = dynamic(() => import('@/components/district-risk-map'), 
 
 export default function PublicDashboardPage() {
   const { firestore } = useFirebase();
-  const [cachedDistrictRisks, setCachedDistrictRisks] = React.useState<any[]>([]);
+  const [cachedDistrictRisks, setCachedDistrictRisks] = React.useState<DistrictRisk[]>([]);
 
   const reportsQuery = useMemoFirebase(
     () => (firestore ? query(

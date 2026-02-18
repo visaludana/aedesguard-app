@@ -19,6 +19,7 @@ export default function OfficerDashboardPage() {
   const role = useUserRole();
   const canFetchData = role === 'officer';
   
+  // Use 'none', 'approved', 'pending' - the rules will allow this because isPhi() will be true.
   const reportsQuery = useMemoFirebase(
     () => (firestore && canFetchData ? query(
         collection(firestore, 'surveillanceSamples'), 

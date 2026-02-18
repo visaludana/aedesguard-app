@@ -8,33 +8,6 @@
  * Segregation. Authorization decisions rely on data denormalized directly onto
  * the documents being secured, avoiding slow and costly cross-document `get()`
  * calls in rules.
- *
- * Data Structure:
- * - /userProfiles/{userId}: Private user data, accessible only by the owner.
- * - /roles_phi/{userId}: A dedicated collection to grant PHI privileges. The
- *   existence of a document here signifies a user is a PHI, providing a fast
- *   and atomic role check.
- * - Top-level collections (/surveillanceSamples, /phiAlerts, /neutralizationVerifications):
- *   These collections store shared application data. They are secured using
- *   denormalized ownership fields (e.g., `uploaderId`) and PHI role checks.
- *
- * Key Security Decisions:
- * - PHI Role Management: A separate `/roles_phi` collection is used to manage
- *   PHI status. This "Existence over Content" pattern is more performant and
- *   secure than checking a role field on a user profile. Client-side writes to
- *   this collection are disabled; it must be managed by a trusted backend process.
- * - Denormalization for Authorization: Ownership fields like `uploaderId` and
- *   `verifierId` are denormalized onto documents in shared collections. This allows
- *   rules to validate ownership directly without extra reads.
- * - User Privacy: Listing all user profiles is explicitly disallowed to protect
- *   user privacy.
- * - Public Data with Secure Writes: The `surveillanceSamples` collection is readable
- *   by any signed-in user to support features like a global heatmap, but write
- *   operations are strictly limited to the document's original creator.
- * - Prototyping Flexibility: These rules focus strictly on authorization (who can
- *   access what) and relational integrity (e.g., `uploaderId` must be correct).
- *   They do not enforce specific data types or shapes, allowing for rapid
- *   application development.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -44,35 +17,25 @@ service cloud.firestore {
     // Helper Functions
     // ----------------------------------------------------------------------
 
-    /**
-     * Returns true if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Returns true if the authenticated user's UID matches the provided userId.
-     * This is the primary function for enforcing document ownership.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
      * Returns true if the user is a Public Health Inspector (PHI).
-     * This check is highly performant as it only checks for the existence
-     * of a document in the dedicated roles collection.
+     * Now includes a fallback for the hardcoded admin email used in the UI.
      */
     function isPhi() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_phi/$(request.auth.uid));
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/roles_phi/$(request.auth.uid)) ||
+        request.auth.token.email == 'admin@aedesguard.com'
+      );
     }
 
-    /**
-     * Returns true if the user owns the existing document.
-     * Combines ownership check with an existence check, critical for safe
-     * update and delete operations.
-     */
     function isExistingOwner(ownerId) {
       return isOwner(ownerId) && resource != null;
     }
@@ -81,13 +44,6 @@ service cloud.firestore {
     // Collection Rules
     // ----------------------------------------------------------------------
 
-    /**
-     * @description Manages user-specific profile data.
-     * @path /userProfiles/{userId}
-     * @allow (create) A new user creating their own profile document.
-     * @deny (get) An authenticated user trying to read another user's profile.
-     * @principle Restricts access to a user's own data tree.
-     */
     match /userProfiles/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
@@ -96,13 +52,6 @@ service cloud.firestore {
       allow delete: if isOwner(userId) && resource != null;
     }
 
-    /**
-     * @description Grants PHI role via document existence. Managed by a backend process.
-     * @path /roles_phi/{userId}
-     * @allow (get) A user with a PHI role checking for their own role document.
-     * @deny (create) A user attempting to grant themselves the PHI role.
-     * @principle Secures a critical role-granting collection by disabling all client writes.
-     */
     match /roles_phi/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
@@ -111,33 +60,19 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    /**
-     * @description Stores all mosquito larvae surveillance samples submitted by users.
-     * @path /surveillanceSamples/{sampleId}
-     * @allow (read) A PHI reading any sample, or any user reading an approved/unappealed sample.
-     * @deny (update) A user trying to modify a sample they did not upload.
-     * @principle Implements a "Public Read with Owner-Only Writes" model.
-     */
     match /surveillanceSamples/{sampleId} {
-      // PHIs can read everything.
+      // PHIs can read everything (including pending/appealed).
       allow read: if isPhi();
       
       // All users (including public) can read approved or un-appealed samples.
-      // Separating this from the PHI rule makes the rule easier for Firestore to evaluate.
-      allow read: if resource.data.submissionAppealStatus in ['approved', 'none'];
+      // We use 'in' with a specific order that we'll match in the application code.
+      allow read: if resource.data.submissionAppealStatus in ['none', 'approved'];
 
       allow create: if isSignedIn() && request.resource.data.uploaderId == request.auth.uid;
       allow update: if isExistingOwner(resource.data.uploaderId) || isPhi();
       allow delete: if isExistingOwner(resource.data.uploaderId);
     }
 
-    /**
-     * @description Contains automated alerts for PHIs about high-risk sites.
-     * @path /phiAlerts/{alertId}
-     * @allow (update) A PHI updating an alert to resolve or assign it.
-     * @deny (create) Any user, including a PHI, trying to create an alert manually.
-     * @principle Restricts access to a collection intended only for a specific role (PHI).
-     */
     match /phiAlerts/{alertId} {
       allow get, list: if isPhi();
       allow create: if false;
@@ -145,19 +80,22 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    /**
-     * @description Records user submissions verifying that a breeding site was cleaned.
-     * @path /neutralizationVerifications/{verificationId}
-     * @allow (get) The original verifier reading their own submission, or any PHI reading it.
-     * @deny (delete) A user trying to delete a verification submitted by someone else.
-     * @principle Enforces document ownership for writers, but allows wider read access for oversight by PHIs.
-     */
     match /neutralizationVerifications/{verificationId} {
       allow get: if (isOwner(resource.data.verifierId) && resource != null) || isPhi();
       allow list: if isPhi();
       allow create: if isSignedIn() && request.resource.data.verifierId == request.auth.uid;
       allow update: if (isExistingOwner(resource.data.verifierId) && request.resource.data.verifierId == resource.data.verifierId) || isPhi();
       allow delete: if isExistingOwner(resource.data.verifierId);
+    }
+    
+    match /district_health_reports/{reportId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isPhi();
+    }
+    
+    match /district_risks/{districtName} {
+      allow read: if true;
+      allow write: if isPhi();
     }
   }
 }
