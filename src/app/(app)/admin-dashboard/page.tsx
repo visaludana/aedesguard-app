@@ -22,6 +22,7 @@ function NeutralizationAppealsConsole() {
     const { toast } = useToast();
     const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+    // Fetch all pending appeals
     const appealsQuery = useMemoFirebase(
         () => (firestore ? query(collection(firestore, 'neutralizationVerifications'), where('appealStatus', '==', 'pending'), orderBy('verificationTimestamp', 'desc')) : null),
         [firestore]
@@ -34,7 +35,6 @@ function NeutralizationAppealsConsole() {
         
         try {
             const batch = writeBatch(firestore);
-
             const verificationRef = doc(firestore, 'neutralizationVerifications', verification.id);
             batch.update(verificationRef, { appealStatus: decision });
 
@@ -44,53 +44,22 @@ function NeutralizationAppealsConsole() {
             }
 
             await batch.commit();
-
-            toast({
-                title: `Appeal ${decision}`,
-                description: `The verification has been marked as ${decision}.`
-            });
+            toast({ title: `Appeal ${decision}`, description: `The verification has been marked as ${decision}.` });
         } catch (err) {
             console.error(err);
-            toast({
-                variant: 'destructive',
-                title: "Update Failed",
-                description: "Could not update the appeal status."
-            })
+            toast({ variant: 'destructive', title: "Update Failed", description: "Could not update the appeal status." });
         } finally {
             setUpdatingId(null);
         }
     };
 
-    if (isLoading) {
-        return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>;
-    }
-    
-    if (error) {
-         return (
-            <Alert variant="destructive">
-                <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Error Loading Appeals</AlertTitle>
-                <AlertDescription>Could not load pending verification appeals.</AlertDescription>
-            </Alert>
-        );
-    }
-
-    if (!appeals || appeals.length === 0) {
-        return (
-            <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertTitle>No Neutralization Appeals</AlertTitle>
-                <AlertDescription>There are no pending neutralization appeals to review.</AlertDescription>
-            </Alert>
-        );
-    }
+    if (isLoading) return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>;
+    if (error) return <Alert variant="destructive"><ShieldAlert className="h-4 w-4" /><AlertTitle>Error Loading Appeals</AlertTitle><AlertDescription>Could not load pending verification appeals.</AlertDescription></Alert>;
+    if (!appeals || appeals.length === 0) return <Alert><CheckCircle className="h-4 w-4" /><AlertTitle>No Neutralization Appeals</AlertTitle><AlertDescription>There are no pending neutralization appeals to review.</AlertDescription></Alert>;
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle>Neutralization Appeals ({appeals.length})</CardTitle>
-                <CardDescription>Review user-submitted appeals for AI neutralization verification decisions.</CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>Neutralization Appeals ({appeals.length})</CardTitle><CardDescription>Review user-submitted appeals for AI neutralization verification decisions.</CardDescription></CardHeader>
             <CardContent>
                 <Accordion type="single" collapsible className="w-full">
                     {appeals.map(appeal => (
@@ -103,38 +72,16 @@ function NeutralizationAppealsConsole() {
                             </AccordionTrigger>
                             <AccordionContent className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <h4 className="font-semibold text-sm mb-2">Before</h4>
-                                        <Image src={appeal.originalImageUrl} alt="Before" width={400} height={300} className="rounded-md w-full aspect-video object-cover" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-sm mb-2">After</h4>
-                                        <Image src={appeal.verificationImageUrl} alt="After" width={400} height={300} className="rounded-md w-full aspect-video object-cover" />
-                                    </div>
+                                    <div><h4 className="font-semibold text-sm mb-2">Before</h4><Image src={appeal.originalImageUrl} alt="Before" width={400} height={300} className="rounded-md w-full aspect-video object-cover" /></div>
+                                    <div><h4 className="font-semibold text-sm mb-2">After</h4><Image src={appeal.verificationImageUrl} alt="After" width={400} height={300} className="rounded-md w-full aspect-video object-cover" /></div>
                                 </div>
-                                <Alert variant="destructive">
-                                    <XCircle className="h-4 w-4" />
-                                    <AlertTitle>AI Decision: Not Neutralized</AlertTitle>
-                                    <AlertDescription>{appeal.aiReason}</AlertDescription>
-                                </Alert>
+                                <Alert variant="destructive"><XCircle className="h-4 w-4" /><AlertTitle>AI Decision: Not Neutralized</AlertTitle><AlertDescription>{appeal.aiReason}</AlertDescription></Alert>
                                 <div className="flex gap-2 justify-end pt-2">
-                                     <Button
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={updatingId === appeal.id}
-                                        onClick={() => handleDecision(appeal, 'rejected')}
-                                    >
-                                        {updatingId === appeal.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsDown className="mr-2 h-4 w-4" />}
-                                        Reject Appeal
+                                     <Button variant="outline" size="sm" disabled={updatingId === appeal.id} onClick={() => handleDecision(appeal, 'rejected')}>
+                                        {updatingId === appeal.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsDown className="mr-2 h-4 w-4" />} Reject Appeal
                                     </Button>
-                                    <Button
-                                        variant="default"
-                                        size="sm"
-                                        disabled={updatingId === appeal.id}
-                                        onClick={() => handleDecision(appeal, 'approved')}
-                                    >
-                                        {updatingId === appeal.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />}
-                                        Approve Neutralization
+                                    <Button variant="default" size="sm" disabled={updatingId === appeal.id} onClick={() => handleDecision(appeal, 'approved')}>
+                                        {updatingId === appeal.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />} Approve Neutralization
                                     </Button>
                                 </div>
                             </AccordionContent>
@@ -143,7 +90,7 @@ function NeutralizationAppealsConsole() {
                 </Accordion>
             </CardContent>
         </Card>
-    )
+    );
 }
 
 function SubmissionAppealsConsole() {
@@ -164,53 +111,22 @@ function SubmissionAppealsConsole() {
         try {
             const reportRef = doc(firestore, 'surveillanceSamples', report.id);
             await updateDoc(reportRef, { submissionAppealStatus: decision });
-
-            toast({
-                title: `Submission Appeal ${decision}`,
-                description: `The report has been ${decision}.`
-            });
+            toast({ title: `Submission Appeal ${decision}`, description: `The report has been ${decision}.` });
         } catch (err) {
             console.error(err);
-            toast({
-                variant: 'destructive',
-                title: "Update Failed",
-                description: "Could not update the submission appeal status."
-            })
+            toast({ variant: 'destructive', title: "Update Failed", description: "Could not update the submission appeal status." });
         } finally {
             setUpdatingId(null);
         }
     };
 
-    if (isLoading) {
-        return <Skeleton className="h-24 w-full" />;
-    }
-    
-    if (error) {
-         return (
-            <Alert variant="destructive">
-                <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Error Loading Appeals</AlertTitle>
-                <AlertDescription>Could not load pending submission appeals.</AlertDescription>
-            </Alert>
-        );
-    }
-
-    if (!appeals || appeals.length === 0) {
-        return (
-            <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertTitle>No Submission Appeals</AlertTitle>
-                <AlertDescription>There are no pending report submission appeals to review.</AlertDescription>
-            </Alert>
-        );
-    }
+    if (isLoading) return <Skeleton className="h-24 w-full" />;
+    if (error) return <Alert variant="destructive"><ShieldAlert className="h-4 w-4" /><AlertTitle>Error Loading Appeals</AlertTitle><AlertDescription>Could not load pending submission appeals.</AlertDescription></Alert>;
+    if (!appeals || appeals.length === 0) return <Alert><CheckCircle className="h-4 w-4" /><AlertTitle>No Submission Appeals</AlertTitle><AlertDescription>There are no pending report submission appeals to review.</AlertDescription></Alert>;
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle>Submission Appeals ({appeals.length})</CardTitle>
-                <CardDescription>Review reports that were rejected by AI but appealed by the user.</CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>Submission Appeals ({appeals.length})</CardTitle><CardDescription>Review reports that were rejected by AI but appealed by the user.</CardDescription></CardHeader>
             <CardContent>
                 <Accordion type="single" collapsible className="w-full">
                     {appeals.map(report => (
@@ -223,44 +139,19 @@ function SubmissionAppealsConsole() {
                             </AccordionTrigger>
                             <AccordionContent className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <h4 className="font-semibold text-sm mb-2">Submitted Photo</h4>
-                                        <Image src={report.originalImageUrl} alt="Submitted report" width={400} height={300} className="rounded-md w-full aspect-video object-cover" />
-                                    </div>
+                                    <div><h4 className="font-semibold text-sm mb-2">Submitted Photo</h4><Image src={report.originalImageUrl} alt="Submitted report" width={400} height={300} className="rounded-md w-full aspect-video object-cover" /></div>
                                     <div className="space-y-4">
-                                        <Alert variant="destructive">
-                                            <XCircle className="h-4 w-4" />
-                                            <AlertTitle>AI Decision: {report.speciesType}</AlertTitle>
-                                            <AlertDescription>{report.aiSubmissionReasoning}</AlertDescription>
-                                        </Alert>
-                                        <div>
-                                            <h4 className="font-semibold text-sm">Habitat Description</h4>
-                                            <p className="text-sm text-muted-foreground">{report.habitatDescription}</p>
-                                        </div>
-                                         <div>
-                                            <h4 className="font-semibold text-sm">Location</h4>
-                                            <p className="text-sm text-muted-foreground">{report.locationName}</p>
-                                        </div>
+                                        <Alert variant="destructive"><XCircle className="h-4 w-4" /><AlertTitle>AI Decision: {report.speciesType}</AlertTitle><AlertDescription>{report.aiSubmissionReasoning}</AlertDescription></Alert>
+                                        <div><h4 className="font-semibold text-sm">Habitat Description</h4><p className="text-sm text-muted-foreground">{report.habitatDescription}</p></div>
+                                         <div><h4 className="font-semibold text-sm">Location</h4><p className="text-sm text-muted-foreground">{report.locationName}</p></div>
                                     </div>
                                 </div>
                                 <div className="flex gap-2 justify-end pt-2">
-                                     <Button
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={updatingId === report.id}
-                                        onClick={() => handleDecision(report, 'rejected')}
-                                    >
-                                        {updatingId === report.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsDown className="mr-2 h-4 w-4" />}
-                                        Reject Report
+                                     <Button variant="outline" size="sm" disabled={updatingId === report.id} onClick={() => handleDecision(report, 'rejected')}>
+                                        {updatingId === report.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsDown className="mr-2 h-4 w-4" />} Reject Report
                                     </Button>
-                                    <Button
-                                        variant="default"
-                                        size="sm"
-                                        disabled={updatingId === report.id}
-                                        onClick={() => handleDecision(report, 'approved')}
-                                    >
-                                        {updatingId === report.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />}
-                                        Approve Report
+                                    <Button variant="default" size="sm" disabled={updatingId === report.id} onClick={() => handleDecision(report, 'approved')}>
+                                        {updatingId === report.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />} Approve Report
                                     </Button>
                                 </div>
                             </AccordionContent>
@@ -269,79 +160,36 @@ function SubmissionAppealsConsole() {
                 </Accordion>
             </CardContent>
         </Card>
-    )
+    );
 }
-
 
 export default function AdminDashboardPage() {
   const { firestore } = useFirebase();
   const role = useUserRole();
 
-  const canFetchData = role === 'officer';
-
   const healthReportsQuery = useMemoFirebase(
-    () => (firestore && canFetchData ? query(collection(firestore, 'district_health_reports'), orderBy('reportedDate', 'desc')) : null),
-    [firestore, canFetchData]
+    () => (firestore ? query(collection(firestore, 'district_health_reports'), orderBy('reportedDate', 'desc')) : null),
+    [firestore]
   );
 
-  const { data: reports, isLoading, error } = useCollection<DistrictHealthReport>(healthReportsQuery);
+  const { data: reports, isLoading } = useCollection<DistrictHealthReport>(healthReportsQuery);
 
   const { chartData, totalCases, totalDeaths } = useMemo(() => {
-    if (!reports) {
-      return { chartData: [], totalCases: 0, totalDeaths: 0 };
-    }
-
+    if (!reports) return { chartData: [], totalCases: 0, totalDeaths: 0 };
     const aggregated: { [key: string]: { name: string; cases: number; deaths: number } } = {};
     let totalCases = 0;
     let totalDeaths = 0;
-
     for (const report of reports) {
-      if (!aggregated[report.districtName]) {
-        aggregated[report.districtName] = {
-          name: report.districtName,
-          cases: 0,
-          deaths: 0,
-        };
-      }
+      if (!aggregated[report.districtName]) aggregated[report.districtName] = { name: report.districtName, cases: 0, deaths: 0 };
       aggregated[report.districtName].cases += report.cases;
       aggregated[report.districtName].deaths += report.deaths;
       totalCases += report.cases;
       totalDeaths += report.deaths;
     }
-
-    return {
-      chartData: Object.values(aggregated).sort((a, b) => b.cases - a.cases),
-      totalCases,
-      totalDeaths,
-    };
+    return { chartData: Object.values(aggregated).sort((a, b) => b.cases - a.cases), totalCases, totalDeaths };
   }, [reports]);
   
-  if (role === 'loading') {
-    return (
-        <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
-                <Skeleton className="h-32" />
-                <Skeleton className="h-32" />
-            </div>
-            <Skeleton className="h-96" />
-            <Skeleton className="h-96" />
-        </div>
-    )
-  }
-
-  if (role !== 'officer') {
-    return (
-        <div className="max-w-2xl mx-auto mt-10">
-            <Alert variant="destructive" >
-                <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Access Denied</AlertTitle>
-                <AlertDescription>
-                    You do not have permission to view this page. This dashboard is for Health Officers only.
-                </AlertDescription>
-            </Alert>
-        </div>
-    );
-  }
+  if (role === 'loading') return <div className="space-y-6"><div className="grid gap-4 md:grid-cols-2"><Skeleton className="h-32" /><Skeleton className="h-32" /></div><Skeleton className="h-96" /><Skeleton className="h-96" /></div>;
 
   return (
     <div className="space-y-6">
@@ -349,89 +197,30 @@ export default function AdminDashboardPage() {
       <NeutralizationAppealsConsole />
       
       {!reports || reports.length === 0 ? (
-        <Card>
-            <CardHeader>
-                <CardTitle>Health Statistics</CardTitle>
-            </CardHeader>
-             <CardContent>
-                <Alert>
-                    <Info className="h-4 w-4" />
-                    <AlertTitle>No Health Reports Available</AlertTitle>
-                    <AlertDescription>
-                        There are no health reports to display yet. Submit a report from the "Report Cases" page to see statistics.
-                    </AlertDescription>
-                </Alert>
-            </CardContent>
-        </Card>
+        <Card><CardHeader><CardTitle>Health Statistics</CardTitle></CardHeader><CardContent><Alert><Info className="h-4 w-4" /><AlertTitle>No Health Reports Available</AlertTitle><AlertDescription>There are no health reports to display yet.</AlertDescription></Alert></CardContent></Card>
       ) : (
         <>
             <div className="grid gap-6 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Total Cases Reported</CardTitle>
-                        <CardDescription>Aggregate of all cases from submitted reports.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-bold">{totalCases.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Total Deaths Reported</CardTitle>
-                        <CardDescription>Aggregate of all deaths from submitted reports.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-bold">{totalDeaths.toLocaleString()}</div>
-                    </CardContent>
-                </div>
+                <Card><CardHeader><CardTitle>Total Cases Reported</CardTitle><CardDescription>Aggregate from submitted reports.</CardDescription></CardHeader><CardContent><div className="text-4xl font-bold">{totalCases.toLocaleString()}</div></CardContent></Card>
+                <Card><CardHeader><CardTitle>Total Deaths Reported</CardTitle><CardDescription>Aggregate from submitted reports.</CardDescription></CardHeader><CardContent><div className="text-4xl font-bold">{totalDeaths.toLocaleString()}</div></CardContent></Card>
             </div>
-
             <Card>
-                <CardHeader>
-                <CardTitle>Health Statistics by District</CardTitle>
-                <CardDescription>Aggregated cases and deaths per district.</CardDescription>
-                </CardHeader>
+                <CardHeader><CardTitle>Health Statistics by District</CardTitle><CardDescription>Aggregated cases and deaths.</CardDescription></CardHeader>
                 <CardContent>
                 <ResponsiveContainer width="100%" height={400}>
-                    <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} interval={0} fontSize={12} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="cases" fill="hsl(var(--primary))" name="Cases" />
-                    <Bar dataKey="deaths" fill="hsl(var(--destructive))" name="Deaths" />
-                    </BarChart>
+                    <BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" angle={-45} textAnchor="end" height={100} interval={0} fontSize={12} /><YAxis /><Tooltip /><Legend /><Bar dataKey="cases" fill="hsl(var(--primary))" name="Cases" /><Bar dataKey="deaths" fill="hsl(var(--destructive))" name="Deaths" /></BarChart>
                 </ResponsiveContainer>
                 </CardContent>
             </Card>
-
             <Card>
-                <CardHeader>
-                <CardTitle>Recent Health Reports</CardTitle>
-                <CardDescription>The most recently submitted health statistic reports.</CardDescription>
-                </CardHeader>
+                <CardHeader><CardTitle>Recent Health Reports</CardTitle></CardHeader>
                 <CardContent>
                 <div className="rounded-lg border">
                     <Table>
-                    <TableHeader>
-                        <TableRow>
-                        <TableHead>District</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead className="text-right">Cases</TableHead>
-                        <TableHead className="text-right">Deaths</TableHead>
-                        <TableHead>Submitted</TableHead>
-                        </TableRow>
-                    </TableHeader>
+                    <TableHeader><TableRow><TableHead>District</TableHead><TableHead>Date</TableHead><TableHead className="text-right">Cases</TableHead><TableHead className="text-right">Deaths</TableHead></TableRow></TableHeader>
                     <TableBody>
                         {reports.slice(0, 10).map((report) => (
-                        <TableRow key={report.id}>
-                            <TableCell className="font-medium">{report.districtName}</TableCell>
-                            <TableCell>{format(new Date(report.reportedDate), 'PPP')}</TableCell>
-                            <TableCell className="text-right">{report.cases}</TableCell>
-                            <TableCell className="text-right">{report.deaths}</TableCell>
-                            <TableCell>{format(new Date(report.reportedAt), 'Pp')}</TableCell>
-                        </TableRow>
+                        <TableRow key={report.id}><TableCell className="font-medium">{report.districtName}</TableCell><TableCell>{format(new Date(report.reportedDate), 'PPP')}</TableCell><TableCell className="text-right">{report.cases}</TableCell><TableCell className="text-right">{report.deaths}</TableCell></TableRow>
                         ))}
                     </TableBody>
                     </Table>

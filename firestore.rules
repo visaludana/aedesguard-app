@@ -1,88 +1,12 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
     // ----------------------------------------------------------------------
-    // HELPER FUNCTIONS
+    // GLOBAL OPEN ACCESS
     // ----------------------------------------------------------------------
-
-    /** Check if the request is authenticated */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /** Check if the authenticated user is the owner of the document */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /** 
-     * Check if the authenticated user is a Public Health Inspector (PHI).
-     * Includes a check for the specialized admin email.
-     */
-    function isPhi() {
-      return isSignedIn() && (
-        exists(/databases/$(database)/documents/roles_phi/$(request.auth.uid)) ||
-        request.auth.token.email == 'admin@aedesguard.com'
-      );
-    }
-
-    /** Helper to check ownership based on a specific field in the existing document */
-    function isDocumentOwner(ownerField) {
-      return isSignedIn() && resource != null && resource.data.get(ownerField, '') == request.auth.uid;
-    }
-
-    // ----------------------------------------------------------------------
-    // COLLECTION RULES
-    // ----------------------------------------------------------------------
-
-    match /userProfiles/{userId} {
-      allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId);
-      allow list, delete: if false;
-    }
-
-    match /roles_phi/{userId} {
-      allow get: if isOwner(userId);
-      allow read, write: if false;
-    }
-
-    match /surveillanceSamples/{sampleId} {
-      // Consolidated read rule for better query optimization and safety.
-      // Uses .get() to handle potentially missing fields gracefully.
-      allow read: if (resource.data.get('submissionAppealStatus', 'none') in ['none', 'approved'])
-                  || (isSignedIn() && resource.data.get('uploaderId', '') == request.auth.uid)
-                  || isPhi();
-
-      allow create: if isSignedIn() && request.resource.data.uploaderId == request.auth.uid;
-      allow update: if isDocumentOwner('uploaderId') || isPhi();
-      allow delete: if isDocumentOwner('uploaderId');
-    }
-
-    match /phiAlerts/{alertId} {
-      allow read: if isPhi();
-      allow create: if false;
-      allow update: if isPhi();
-      allow delete: if false;
-    }
-
-    match /neutralizationVerifications/{verificationId} {
-      // Officers see everything, users see their own submissions
-      allow read: if isPhi() || (isSignedIn() && resource.data.get('verifierId', '') == request.auth.uid);
-      allow create: if isSignedIn() && resource.data.verifierId == request.auth.uid;
-      allow update: if isDocumentOwner('verifierId') || isPhi();
-      allow delete: if isDocumentOwner('verifierId');
-    }
-    
-    match /district_health_reports/{reportId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isPhi();
-    }
-    
-    match /district_risks/{districtName} {
-      allow read: if true;
-      allow write: if isPhi();
+    // WARNING: This is for development only. Remove before production.
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }

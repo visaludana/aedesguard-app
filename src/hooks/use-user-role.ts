@@ -1,43 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useFirebase } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
 
 export type UserRole = 'loading' | 'public' | 'user' | 'officer';
 
+/**
+ * Temporary bypass for authentication and roles.
+ * Forces the user into the 'officer' role to allow unrestricted testing.
+ */
 export function useUserRole(): UserRole {
-  const { user, isUserLoading, firestore } = useFirebase();
   const [role, setRole] = useState<UserRole>('loading');
 
   useEffect(() => {
-    if (isUserLoading) {
-      setRole('loading');
-      return;
-    }
-
-    if (!user) {
-      setRole('public');
-      return;
-    }
-
-    // Special check for the hardcoded admin email
-    if (user.email === 'admin@aedesguard.com') {
-      setRole('officer');
-      return;
-    }
-
-    if (firestore) {
-      const phiDocRef = doc(firestore, 'roles_phi', user.uid);
-      getDoc(phiDocRef).then(docSnap => {
-        setRole(docSnap.exists() ? 'officer' : 'user');
-      }).catch(() => {
-        setRole('user'); // Fallback on error
-      });
-    } else {
-      setRole('user'); // Fallback if firestore not ready
-    }
-  }, [user, isUserLoading, firestore]);
+    // Immediate bypass
+    setRole('officer');
+  }, []);
 
   return role;
 }

@@ -1,9 +1,9 @@
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, where } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, ClipboardPlus, ShieldAlert } from 'lucide-react';
+import { BarChart, ClipboardPlus } from 'lucide-react';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -11,21 +11,18 @@ import ClientMap from '@/components/client-map';
 import type { SurveillanceSample } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUserRole } from '@/hooks/use-user-role';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function OfficerDashboardPage() {
   const { firestore } = useFirebase();
   const role = useUserRole();
-  const canFetchData = role === 'officer';
   
-  // Officers can see everything, including pending appeals.
-  // The rules allow this because isPhi() will be true.
+  // Fetch everything without filters
   const reportsQuery = useMemoFirebase(
-    () => (firestore && canFetchData ? query(
+    () => (firestore ? query(
         collection(firestore, 'surveillanceSamples'), 
         orderBy('timestamp', 'desc')
     ) : null),
-    [firestore, canFetchData]
+    [firestore]
   );
   const { data: reports, isLoading } = useCollection<SurveillanceSample>(reportsQuery);
 
@@ -37,21 +34,6 @@ export default function OfficerDashboardPage() {
       </div>
     );
   }
-
-  if (role !== 'officer') {
-    return (
-        <div className="max-w-2xl mx-auto mt-10">
-            <Alert variant="destructive" >
-                <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Access Denied</AlertTitle>
-                <AlertDescription>
-                    You do not have permission to view this page. This dashboard is for Health Officers only.
-                </AlertDescription>
-            </Alert>
-        </div>
-    );
-  }
-
 
   return (
     <div className="grid gap-6">
