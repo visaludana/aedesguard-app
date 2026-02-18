@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -10,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DistrictHealthReport, NeutralizationVerification, SurveillanceSample } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, Info, ThumbsUp, ThumbsDown, Loader2, XCircle } from 'lucide-react';
+import { ShieldAlert, Info, ThumbsUp, ThumbsDown, Loader2, XCircle, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUserRole } from '@/hooks/use-user-role';
@@ -63,36 +62,27 @@ function NeutralizationAppealsConsole() {
     };
 
     if (isLoading) {
-        return (
-            <Card>
-                <CardHeader><CardTitle>Verification Appeals</CardTitle></CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        <Skeleton className="h-24 w-full" />
-                        <Skeleton className="h-24 w-full" />
-                    </div>
-                </CardContent>
-            </Card>
-        );
+        return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>;
     }
     
     if (error) {
          return (
-            <Card>
-                <CardHeader><CardTitle>Verification Appeals</CardTitle></CardHeader>
-                <CardContent>
-                    <Alert variant="destructive">
-                        <ShieldAlert className="h-4 w-4" />
-                        <AlertTitle>Error Loading Appeals</AlertTitle>
-                        <AlertDescription>Could not load pending verification appeals. You may not have the required permissions.</AlertDescription>
-                    </Alert>
-                </CardContent>
-            </Card>
+            <Alert variant="destructive">
+                <ShieldAlert className="h-4 w-4" />
+                <AlertTitle>Error Loading Appeals</AlertTitle>
+                <AlertDescription>Could not load pending verification appeals.</AlertDescription>
+            </Alert>
         );
     }
 
     if (!appeals || appeals.length === 0) {
-        return null;
+        return (
+            <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertTitle>No Neutralization Appeals</AlertTitle>
+                <AlertDescription>There are no pending neutralization appeals to review.</AlertDescription>
+            </Alert>
+        );
     }
 
     return (
@@ -192,31 +182,27 @@ function SubmissionAppealsConsole() {
     };
 
     if (isLoading) {
-        return (
-            <Card>
-                <CardHeader><CardTitle>Submission Appeals</CardTitle></CardHeader>
-                <CardContent><Skeleton className="h-24 w-full" /></CardContent>
-            </Card>
-        );
+        return <Skeleton className="h-24 w-full" />;
     }
     
     if (error) {
          return (
-            <Card>
-                <CardHeader><CardTitle>Submission Appeals</CardTitle></CardHeader>
-                <CardContent>
-                    <Alert variant="destructive">
-                        <ShieldAlert className="h-4 w-4" />
-                        <AlertTitle>Error Loading Appeals</AlertTitle>
-                        <AlertDescription>Could not load pending submission appeals.</AlertDescription>
-                    </Alert>
-                </CardContent>
-            </Card>
+            <Alert variant="destructive">
+                <ShieldAlert className="h-4 w-4" />
+                <AlertTitle>Error Loading Appeals</AlertTitle>
+                <AlertDescription>Could not load pending submission appeals.</AlertDescription>
+            </Alert>
         );
     }
 
     if (!appeals || appeals.length === 0) {
-        return null;
+        return (
+            <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertTitle>No Submission Appeals</AlertTitle>
+                <AlertDescription>There are no pending report submission appeals to review.</AlertDescription>
+            </Alert>
+        );
     }
 
     return (
@@ -339,7 +325,6 @@ export default function AdminDashboardPage() {
             </div>
             <Skeleton className="h-96" />
             <Skeleton className="h-96" />
-            <Skeleton className="h-64" />
         </div>
     )
   }
@@ -351,7 +336,7 @@ export default function AdminDashboardPage() {
                 <ShieldAlert className="h-4 w-4" />
                 <AlertTitle>Access Denied</AlertTitle>
                 <AlertDescription>
-                    You do not have permission to view this page. Please contact an administrator if you believe this is an error.
+                    You do not have permission to view this page. This dashboard is for Health Officers only.
                 </AlertDescription>
             </Alert>
         </div>

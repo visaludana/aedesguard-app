@@ -46,15 +46,14 @@ function StatusBadge({ isNeutralized }: { isNeutralized: boolean }) {
 }
 
 export default function UserDashboardPage() {
-    const { firestore, user } = useFirebase();
+    const { firestore } = useFirebase();
     const [nearbyReports, setNearbyReports] = useState<SurveillanceSample[]>([]);
     const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
     const [isLoadingLocation, setIsLoadingLocation] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     // This query focuses on reports accessible to regular users.
-    // Owners can see their own even if pending, but for a global "nearby" list, 
-    // we fetch what the rules allow for general viewing.
+    // The filter 'submissionAppealStatus in ['none', 'approved']' precisely matches the security rule.
     const reportsQuery = useMemoFirebase(
       () => (firestore ? query(
           collection(firestore, 'surveillanceSamples'), 
@@ -89,7 +88,7 @@ export default function UserDashboardPage() {
             setIsLoadingLocation(false);
         }, (error) => {
             console.error("Error getting user location", error);
-            setError("Could not get your location. Please ensure location services are enabled for this site.");
+            setError("Could not get your location. Please ensure location services are enabled.");
             setIsLoadingLocation(false);
         });
     };
@@ -112,7 +111,7 @@ export default function UserDashboardPage() {
                     <CardTitle>Nearby Breeding Sites (500m)</CardTitle>
                     <CardDescription>A list of reported breeding sites near your current location.</CardDescription>
                 </div>
-                <Button onClick={findNearbyReports} disabled={isLoadingLocation}>
+                <Button onClick={findNearbyReports} disabled={isLoadingLocation} variant="outline" size="sm">
                     {isLoadingLocation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Locate className="mr-2 h-4 w-4" />}
                     Refresh Location
                 </Button>
@@ -126,7 +125,7 @@ export default function UserDashboardPage() {
                     </div>
                  ) : error ? (
                     <div className="text-center text-destructive py-10 border-2 border-dashed border-destructive/50 rounded-lg">
-                        <p className="font-medium">Error</p>
+                        <p className="font-medium">Notice</p>
                         <p className="text-sm">{error}</p>
                     </div>
                  ) : nearbyReports.length > 0 ? (
@@ -153,10 +152,10 @@ export default function UserDashboardPage() {
                                     <StatusBadge isNeutralized={report.isNeutralized} />
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <Button asChild variant="outline" size="sm">
+                                    <Button asChild variant="ghost" size="sm">
                                         <Link href={`https://www.google.com/maps/dir/?api=1&destination=${report.latitude},${report.longitude}`} target="_blank" rel="noopener noreferrer">
                                             <MapPin className="mr-2 h-4 w-4" />
-                                            Get Directions
+                                            Directions
                                         </Link>
                                     </Button>
                                 </TableCell>
@@ -168,7 +167,7 @@ export default function UserDashboardPage() {
                  ) : (
                     <div className="text-center py-10 border-2 border-dashed rounded-lg">
                         <p className="text-muted-foreground">No breeding sites found within a 500m radius of your location.</p>
-                         <Button asChild className="mt-4">
+                         <Button asChild className="mt-4" variant="secondary">
                             <Link href="/report">Report a New Site</Link>
                         </Button>
                     </div>

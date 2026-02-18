@@ -29,7 +29,7 @@ service cloud.firestore {
 
     /** Helper to check ownership based on a specific field in the existing document */
     function isDocumentOwner(ownerField) {
-      return isSignedIn() && resource != null && resource.data[ownerField] == request.auth.uid;
+      return isSignedIn() && resource != null && resource.data.get(ownerField, '') == request.auth.uid;
     }
 
     // ----------------------------------------------------------------------
@@ -49,14 +49,11 @@ service cloud.firestore {
     }
 
     match /surveillanceSamples/{sampleId} {
-      // 1. Anyone can read reports that are approved or have no appeal status (Public Dashboard)
-      allow read: if resource.data.submissionAppealStatus in ['none', 'approved'];
-      
-      // 2. Owners can read their own reports even if they are pending (User Dashboard)
-      allow read: if isSignedIn() && resource.data.uploaderId == request.auth.uid;
-      
-      // 3. Officers can read all reports (Officer Dashboard)
-      allow read: if isPhi();
+      // Consolidated read rule for better query optimization and safety.
+      // Uses .get() to handle potentially missing fields gracefully.
+      allow read: if (resource.data.get('submissionAppealStatus', 'none') in ['none', 'approved'])
+                  || (isSignedIn() && resource.data.get('uploaderId', '') == request.auth.uid)
+                  || isPhi();
 
       allow create: if isSignedIn() && request.resource.data.uploaderId == request.auth.uid;
       allow update: if isDocumentOwner('uploaderId') || isPhi();
@@ -71,8 +68,9 @@ service cloud.firestore {
     }
 
     match /neutralizationVerifications/{verificationId} {
-      allow read: if isPhi() || (isSignedIn() && resource.data.verifierId == request.auth.uid);
-      allow create: if isSignedIn() && request.resource.data.verifierId == request.auth.uid;
+      // Officers see everything, users see their own submissions
+      allow read: if isPhi() || (isSignedIn() && resource.data.get('verifierId', '') == request.auth.uid);
+      allow create: if isSignedIn() && resource.data.verifierId == request.auth.uid;
       allow update: if isDocumentOwner('verifierId') || isPhi();
       allow delete: if isDocumentOwner('verifierId');
     }
