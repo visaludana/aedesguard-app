@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
@@ -19,11 +18,11 @@ export default function OfficerDashboardPage() {
   const role = useUserRole();
   const canFetchData = role === 'officer';
   
-  // Use 'none', 'approved', 'pending' - the rules will allow this because isPhi() will be true.
+  // Officers can see everything, including pending appeals.
+  // The rules allow this because isPhi() will be true.
   const reportsQuery = useMemoFirebase(
     () => (firestore && canFetchData ? query(
         collection(firestore, 'surveillanceSamples'), 
-        where('submissionAppealStatus', 'in', ['none', 'approved', 'pending']),
         orderBy('timestamp', 'desc')
     ) : null),
     [firestore, canFetchData]

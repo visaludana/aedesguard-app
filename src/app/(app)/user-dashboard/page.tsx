@@ -46,13 +46,15 @@ function StatusBadge({ isNeutralized }: { isNeutralized: boolean }) {
 }
 
 export default function UserDashboardPage() {
-    const { firestore } = useFirebase();
+    const { firestore, user } = useFirebase();
     const [nearbyReports, setNearbyReports] = useState<SurveillanceSample[]>([]);
     const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
     const [isLoadingLocation, setIsLoadingLocation] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // This query matches the security rules exactly.
+    // This query focuses on reports accessible to regular users.
+    // Owners can see their own even if pending, but for a global "nearby" list, 
+    // we fetch what the rules allow for general viewing.
     const reportsQuery = useMemoFirebase(
       () => (firestore ? query(
           collection(firestore, 'surveillanceSamples'), 

@@ -47,7 +47,7 @@ export default function PublicDashboardPage() {
   const { firestore } = useFirebase();
   const [cachedDistrictRisks, setCachedDistrictRisks] = React.useState<DistrictRisk[]>([]);
 
-  // Consistently query for public reports.
+  // Public dashboard fetches ONLY verified or default reports.
   const reportsQuery = useMemoFirebase(
     () => (firestore ? query(
         collection(firestore, 'surveillanceSamples'), 
